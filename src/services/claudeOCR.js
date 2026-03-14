@@ -1,5 +1,3 @@
-import { MEDICAL_EXTRACTION_SYSTEM_PROMPT } from '../data/systemPrompt'
-
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
 const TRIAGE_CATEGORIES = ['IMMEDIATE', 'DELAYED', 'MINIMAL', 'EXPECTANT']
 const EVAC_PRIORITIES = ['Urgent', 'Priority', 'Routine']

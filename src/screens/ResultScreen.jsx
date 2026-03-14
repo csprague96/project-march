@@ -1,8 +1,10 @@
 import { ChevronLeft, Save } from 'lucide-react'
 
 import TriageCard from '../components/TriageCard'
+import { useTranslation } from '../contexts/LanguageContext'
 
-function ResultScreen({ backLabel = 'Back', isSaving, onBack, onSave, record }) {
+function ResultScreen({ backLabel, isSaving, onBack, onSave, record }) {
+  const { t } = useTranslation()
   const hasBeenSaved = Boolean(record?.savedAt)
 
   return (
@@ -25,7 +27,7 @@ function ResultScreen({ backLabel = 'Back', isSaving, onBack, onSave, record }) 
             className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[var(--triage-immediate)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
           >
             <Save className="h-4 w-4" />
-            {hasBeenSaved ? 'Saved' : isSaving ? 'Saving...' : 'Save'}
+            {hasBeenSaved ? t('saved') : isSaving ? t('saving') : t('save')}
           </button>
         </header>
 

@@ -1,8 +1,12 @@
+import { useTranslation } from '../contexts/LanguageContext'
+
 function AllergyBadges({ allergies }) {
+  const { t } = useTranslation()
+
   if (!allergies?.length) {
     return (
       <div className="inline-flex rounded-full border border-[var(--triage-minimal)]/30 bg-[var(--triage-minimal)]/10 px-4 py-2 text-sm font-semibold tracking-wide text-[var(--triage-minimal)]">
-        NO KNOWN ALLERGIES
+        {t('noKnownAllergies')}
       </div>
     )
   }

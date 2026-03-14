@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CameraScreen from './screens/CameraScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ResultScreen from './screens/ResultScreen'
+import { useTranslation } from './contexts/LanguageContext'
 import { extractWithClaude } from './services/claudeOCR'
 import { getAllTriageRecords, queueOfflineCapture, saveTriageRecord } from './services/db'
 import { preprocessImage } from './services/imagePreprocess'
@@ -36,6 +37,7 @@ function createPersistedRecord(result, metadata = {}) {
 }
 
 function App() {
+  const { t } = useTranslation()
   const [view, setView] = useState('camera')
   const [records, setRecords] = useState([])
   const [activeRecord, setActiveRecord] = useState(null)
@@ -45,7 +47,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [processingLabel, setProcessingLabel] = useState('Processing')
+  const [processingLabel, setProcessingLabel] = useState(() => t('processing'))
   const [errorMessage, setErrorMessage] = useState('')
   const queueIsRunningRef = useRef(false)
 
@@ -106,7 +108,7 @@ function App() {
     const cleanedCode = nextCode.trim()
 
     if (!cleanedCode) {
-      setErrorMessage('Enter an access code or continue offline.')
+      setErrorMessage(t('enterAccessCodeError'))
       return
     }
 
@@ -130,7 +132,7 @@ function App() {
     setIsProcessing(true)
 
     try {
-      setProcessingLabel('Preprocessing image')
+      setProcessingLabel(t('preprocessingImage'))
       const processedImage = await preprocessImage(capture.blob)
 
       let result
@@ -139,14 +141,14 @@ function App() {
 
       if (isOnline && accessCode) {
         try {
-          setProcessingLabel('Sending to Claude')
+          setProcessingLabel(t('sendingToClaude'))
           result = await extractWithClaude({
             accessCode,
             base64ImageData: processedImage.base64,
           })
         } catch (onlineError) {
           console.warn('Claude OCR failed, falling back to Tesseract:', onlineError)
-          setProcessingLabel('Claude failed, running offline OCR')
+          setProcessingLabel(t('claudeFailedOffline'))
           const offlineResult = await extractWithTesseract({
             blob: processedImage.blob,
           })
@@ -155,7 +157,7 @@ function App() {
           source = 'offline'
         }
       } else {
-        setProcessingLabel('Running offline OCR')
+        setProcessingLabel(t('runningOfflineOcr'))
         const offlineResult = await extractWithTesseract({
           blob: processedImage.blob,
         })
@@ -180,10 +182,10 @@ function App() {
       setView('result')
     } catch (error) {
       console.error(error)
-      setErrorMessage(error.message || 'The card could not be processed. Try again.')
+      setErrorMessage(error.message || t('captureError'))
     } finally {
       setIsProcessing(false)
-      setProcessingLabel('Processing')
+      setProcessingLabel(t('processing'))
     }
   }
 
@@ -215,7 +217,7 @@ function App() {
       await refreshRecords()
     } catch (error) {
       console.error(error)
-      setErrorMessage('The triage card could not be saved.')
+      setErrorMessage(t('saveError'))
     } finally {
       setIsSaving(false)
     }
@@ -242,7 +244,7 @@ function App() {
   if (view === 'result' && resultRecord) {
     return (
       <ResultScreen
-        backLabel={resultBackTarget === 'history' ? 'Back to History' : 'Back to Camera'}
+        backLabel={resultBackTarget === 'history' ? t('backToHistory') : t('backToCamera')}
         isSaving={isSaving}
         onBack={() => setView(resultBackTarget)}
         onSave={handleSaveActiveRecord}

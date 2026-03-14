@@ -5,6 +5,7 @@ import ConfidenceIndicator from './ConfidenceIndicator'
 import OfflineBanner from './OfflineBanner'
 import TriageColorBar from './TriageColorBar'
 import VitalSignsGrid from './VitalSignsGrid'
+import { useTranslation } from '../contexts/LanguageContext'
 
 function Section({ children, icon, title }) {
   const IconComponent = icon
@@ -37,6 +38,8 @@ function ListBlock({ emptyLabel, items }) {
 }
 
 function TriageCard({ record }) {
+  const { t } = useTranslation()
+
   return (
     <article className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] shadow-panel">
       <TriageColorBar category={record.triage_category} />
@@ -45,13 +48,13 @@ function TriageCard({ record }) {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)]">Patient</div>
+              <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)]">{t('patient')}</div>
               <div className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-                {record.patient_name ?? 'Unknown patient'}
+                {record.patient_name ?? t('unknownPatient')}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)]">Timestamp</div>
+              <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)]">{t('timestamp')}</div>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
                 {record.date_time ?? new Date(record.createdAt).toLocaleString()}
               </div>
@@ -59,7 +62,7 @@ function TriageCard({ record }) {
           </div>
 
           <div className="rounded-3xl bg-[var(--blood-type-bg)] px-6 py-5 text-center">
-            <div className="text-xs uppercase tracking-[0.4em] text-white/70">Blood type</div>
+            <div className="text-xs uppercase tracking-[0.4em] text-white/70">{t('bloodType')}</div>
             <div className="mt-2 font-medical text-[clamp(3rem,11vw,4.5rem)] font-bold leading-none text-white">
               {record.blood_type ?? '--'}
             </div>
@@ -67,11 +70,11 @@ function TriageCard({ record }) {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <Section icon={ShieldAlert} title="Allergies">
+          <Section icon={ShieldAlert} title={t('allergies')}>
             <AllergyBadges allergies={record.allergies} />
           </Section>
 
-          <Section icon={Droplets} title="Mechanism of injury">
+          <Section icon={Droplets} title={t('mechanismOfInjury')}>
             <div className="flex flex-wrap gap-2">
               {record.mechanism_of_injury?.length ? (
                 record.mechanism_of_injury.map((mechanism) => (
@@ -83,17 +86,17 @@ function TriageCard({ record }) {
                   </span>
                 ))
               ) : (
-                <span className="text-sm text-[var(--text-secondary)]">No mechanism captured</span>
+                <span className="text-sm text-[var(--text-secondary)]">{t('noMechanismCaptured')}</span>
               )}
             </div>
           </Section>
         </div>
 
-        <Section icon={ShieldPlus} title="Injuries">
-          <p className="text-sm leading-6 text-[var(--text-primary)]">{record.injuries ?? 'No injury detail extracted.'}</p>
+        <Section icon={ShieldPlus} title={t('injuries')}>
+          <p className="text-sm leading-6 text-[var(--text-primary)]">{record.injuries ?? t('noInjuryDetail')}</p>
         </Section>
 
-        <Section icon={Activity} title="Vital signs">
+        <Section icon={Activity} title={t('vitalSigns')}>
           <VitalSignsGrid vitalSigns={record.vital_signs} />
           {record.vital_signs?.avpu ? (
             <div className="rounded-xl border border-white/8 bg-white/5 px-3 py-2 text-sm text-[var(--text-primary)]">
@@ -103,29 +106,29 @@ function TriageCard({ record }) {
         </Section>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Section icon={Syringe} title="Treatments">
-            <ListBlock emptyLabel="No treatments extracted." items={record.treatments} />
+          <Section icon={Syringe} title={t('treatments')}>
+            <ListBlock emptyLabel={t('noTreatments')} items={record.treatments} />
           </Section>
 
-          <Section icon={Syringe} title="Medications">
-            <ListBlock emptyLabel="No medications extracted." items={record.medications} />
+          <Section icon={Syringe} title={t('medications')}>
+            <ListBlock emptyLabel={t('noMedications')} items={record.medications} />
           </Section>
         </div>
 
-        <Section icon={ShieldPlus} title="Tourniquet">
+        <Section icon={ShieldPlus} title={t('tourniquet')}>
           {record.tourniquet?.applied ? (
             <div className="space-y-2 rounded-2xl border border-[var(--triage-immediate)]/30 bg-[var(--triage-immediate)]/10 p-4 text-sm text-[var(--text-primary)]">
-              <div className="font-semibold text-white">Applied</div>
-              <div>Location: {record.tourniquet.location ?? 'Not captured'}</div>
-              <div>Time: {record.tourniquet.time ?? 'Not captured'}</div>
+              <div className="font-semibold text-white">{t('tourniquetApplied')}</div>
+              <div>{t('location')}: {record.tourniquet.location ?? t('notCaptured')}</div>
+              <div>{t('time')}: {record.tourniquet.time ?? t('notCaptured')}</div>
             </div>
           ) : (
-            <div className="text-sm text-[var(--text-secondary)]">No tourniquet documented.</div>
+            <div className="text-sm text-[var(--text-secondary)]">{t('noTourniquetDocumented')}</div>
           )}
         </Section>
 
         {record.notes ? (
-          <Section icon={ShieldAlert} title="Notes">
+          <Section icon={ShieldAlert} title={t('notes')}>
             <p className="text-sm leading-6 text-[var(--text-primary)]">{record.notes}</p>
           </Section>
         ) : null}
@@ -135,8 +138,8 @@ function TriageCard({ record }) {
           <div className="space-y-4">
             <OfflineBanner source={record.source} wasUpgraded={record.wasUpgraded} />
             <div className="rounded-2xl border border-[var(--border)] bg-black/20 p-4 text-sm text-[var(--text-secondary)]">
-              <div>Unit: {record.unit ?? 'Not captured'}</div>
-              <div className="mt-2">Evacuation priority: {record.evacuation_priority ?? 'Not captured'}</div>
+              <div>{t('unit')}: {record.unit ?? t('notCaptured')}</div>
+              <div className="mt-2">{t('evacuationPriority')}: {record.evacuation_priority ?? t('notCaptured')}</div>
             </div>
           </div>
         </div>

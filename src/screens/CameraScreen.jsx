@@ -1,7 +1,8 @@
-import { Flashlight, History, KeyRound, LoaderCircle, TriangleAlert, Wifi, WifiOff } from 'lucide-react'
+import { Flashlight, Globe, History, KeyRound, LoaderCircle, TriangleAlert, Wifi, WifiOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import CaptureButton from '../components/CaptureButton'
+import { useTranslation } from '../contexts/LanguageContext'
 import { captureFrame, setTorch, startRearCamera, stopCamera } from '../services/camera'
 
 function CameraScreen({
@@ -14,6 +15,7 @@ function CameraScreen({
   onSaveAccessCode,
   processingLabel,
 }) {
+  const { language, t, toggleLanguage } = useTranslation()
   const videoRef = useRef(null)
   const [cameraError, setCameraError] = useState('')
   const [accessCodeDraft, setAccessCodeDraft] = useState(accessCode ?? '')
@@ -77,7 +79,7 @@ function CameraScreen({
             type="button"
             onClick={onOpenHistory}
             className="flex min-h-12 min-w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
-            aria-label="Open saved triage history"
+            aria-label={t('history')}
           >
             <History className="h-5 w-5" />
           </button>
@@ -87,15 +89,29 @@ function CameraScreen({
               {isOnline ? (
                 <span className="flex items-center gap-2">
                   <Wifi className="h-3.5 w-3.5" />
-                  Online
+                  {t('online')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2 text-[var(--triage-delayed)]">
                   <WifiOff className="h-3.5 w-3.5" />
-                  Offline
+                  {t('offline')}
                 </span>
               )}
             </div>
+
+            {/* Language toggle: cycles EN ↔ UK */}
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="flex min-h-12 min-w-12 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
+              aria-label={t('toggleLanguage')}
+            >
+              <Globe className="h-4 w-4 shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-widest">
+                {language === 'en' ? 'EN' : 'UK'}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={handleTorchToggle}
@@ -115,16 +131,16 @@ function CameraScreen({
                 <KeyRound className="mt-1 h-5 w-5 text-[var(--triage-delayed)]" />
                 <div className="w-full space-y-4">
                   <div>
-                    <h1 className="text-lg font-semibold text-white">Enter Medic Access Code</h1>
+                    <h1 className="text-lg font-semibold text-white">{t('enterMedicAccessCode')}</h1>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                      Store it once in this browser for online OCR. You can still capture offline without it.
+                      {t('accessCodeDescription')}
                     </p>
                   </div>
 
                   <input
                     value={accessCodeDraft}
                     onChange={(event) => setAccessCodeDraft(event.target.value)}
-                    placeholder="Enter access code..."
+                    placeholder={t('accessCodePlaceholder')}
                     className="min-h-12 w-full rounded-2xl border border-white/10 bg-black/35 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25"
                   />
 
@@ -134,7 +150,7 @@ function CameraScreen({
                       onClick={() => onSaveAccessCode(accessCodeDraft)}
                       className="min-h-12 rounded-2xl bg-[var(--triage-immediate)] px-5 text-sm font-semibold text-white"
                     >
-                      Save code
+                      {t('saveCode')}
                     </button>
                   </div>
                 </div>
@@ -152,7 +168,7 @@ function CameraScreen({
           ) : null}
 
           <div className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-sm text-[var(--text-secondary)] backdrop-blur">
-            Point the camera at the casualty card and capture once. The app preprocesses every image before OCR to improve low-light readability.
+            {t('cameraInstructions')}
           </div>
         </div>
 
