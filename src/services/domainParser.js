@@ -9,6 +9,35 @@ import {
 import { getDictionaryMatches } from '../utils/fuzzyMatch'
 import { normalizeTriageResult } from './claudeOCR'
 
+// Exact-match dictionaries for the most common standardized handwritten values.
+// Keys are lowercase Ukrainian; values are English. Unmatched strings pass through
+// as-is so no data is silently dropped.
+
+const BODY_PART_UA = {
+  'права нога': 'Right Leg',
+  'ліва нога': 'Left Leg',
+  'права рука': 'Right Arm',
+  'ліва рука': 'Left Arm',
+  'шия': 'Neck',
+}
+
+const ALLERGY_UA = {
+  'немає': 'None known',
+  'невідомо': 'Unknown',
+}
+
+// Translates a raw extracted string using a given dictionary.
+// Comparison is case- and whitespace-insensitive. Falls back to the original
+// string if no match is found so Cyrillic text is never silently discarded.
+function translateOrPassthrough(raw, dictionary) {
+  if (!raw) {
+    return raw
+  }
+
+  const normalized = raw.trim().toLowerCase()
+  return dictionary[normalized] ?? raw.trim()
+}
+
 function findFirstMatch(text, expressions) {
   for (const expression of expressions) {
     const match = text.match(expression)
@@ -62,9 +91,11 @@ function extractTourniquet(text) {
     }
   }
 
+  const rawLocation = findFirstMatch(text, [/(?:джгут|tourniquet).{0,24}(ліва нога|ліва рука|права нога|права рука|шия|left leg|left arm|right leg|right arm|neck|leg|arm)/i])
+
   return {
     applied: true,
-    location: findFirstMatch(text, [/(?:джгут|tourniquet).{0,24}(ліва нога|ліва рука|права нога|права рука|left leg|left arm|right leg|right arm|leg|arm)/i]),
+    location: translateOrPassthrough(rawLocation, BODY_PART_UA),
     time: findFirstMatch(text, [/(?:джгут|tourniquet).{0,18}([0-2]?\d[:.][0-5]\d)/i]),
   }
 }
@@ -78,7 +109,7 @@ export function parseOfflineOcrText(rawText = '') {
   const allergies = allergiesLine
     ? allergiesLine
         .split(/[;,]/)
-        .map((item) => item.trim())
+        .map((item) => translateOrPassthrough(item.trim(), ALLERGY_UA))
         .filter(Boolean)
     : null
 

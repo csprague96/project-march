@@ -74,36 +74,23 @@ function CameraScreen({
       <div className="camera-vignette absolute inset-0" />
 
       <div className="relative z-10 flex min-h-screen flex-col justify-between p-4 sm:p-6">
-        <header className="flex items-start justify-between gap-3">
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="flex min-h-12 min-w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
-            aria-label={t('history')}
-          >
-            <History className="h-5 w-5" />
-          </button>
-
+        <header className="flex items-center justify-between gap-2">
+          {/* Left: History + Language toggle */}
           <div className="flex items-center gap-2">
-            <div className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
-              {isOnline ? (
-                <span className="flex items-center gap-2">
-                  <Wifi className="h-3.5 w-3.5" />
-                  {t('online')}
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-[var(--triage-delayed)]">
-                  <WifiOff className="h-3.5 w-3.5" />
-                  {t('offline')}
-                </span>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
+              aria-label={t('history')}
+            >
+              <History className="h-5 w-5" />
+            </button>
 
             {/* Language toggle: cycles EN ↔ UK */}
             <button
               type="button"
               onClick={toggleLanguage}
-              className="flex min-h-12 min-w-12 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-black/30 px-3 text-white backdrop-blur"
               aria-label={t('toggleLanguage')}
             >
               <Globe className="h-4 w-4 shrink-0" />
@@ -111,12 +98,29 @@ function CameraScreen({
                 {language === 'en' ? 'EN' : 'UK'}
               </span>
             </button>
+          </div>
+
+          {/* Right: Online status + Torch */}
+          <div className="flex items-center gap-2">
+            <div className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+              {isOnline ? (
+                <span className="flex items-center gap-1.5">
+                  <Wifi className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline">{t('online')}</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-[var(--triage-delayed)]">
+                  <WifiOff className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline">{t('offline')}</span>
+                </span>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={handleTorchToggle}
               disabled={!torchSupported}
-              className="flex min-h-12 min-w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Toggle torch"
             >
               <Flashlight className={`h-5 w-5 ${torchEnabled ? 'text-[var(--triage-delayed)]' : ''}`} />

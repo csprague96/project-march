@@ -118,8 +118,15 @@ export async function extractWithClaude({ accessCode, base64ImageData }) {
   })
 
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || 'Triage processing request failed.')
+    // The server returns JSON errors; extract the message for a readable throw.
+    let errorMessage = `Server error ${response.status}`
+    try {
+      const errorBody = await response.json()
+      errorMessage = errorBody.error ?? errorBody.detail ?? errorMessage
+    } catch {
+      errorMessage = (await response.text()) || errorMessage
+    }
+    throw new Error(errorMessage)
   }
 
   // The serverless function returns the raw Anthropic payload; parse it here.
