@@ -9,7 +9,8 @@ import { preprocessImage } from './services/imagePreprocess'
 import { processOfflineQueue } from './services/offlineQueue'
 import { extractWithTesseract } from './services/tesseractOCR'
 
-const API_KEY_STORAGE_KEY = 'triage-claude-api-key'
+// Storage key kept intentionally vague to avoid leaking implementation details
+const ACCESS_CODE_STORAGE_KEY = 'triage-access-code'
 
 function createRecordId() {
   return crypto.randomUUID()
@@ -39,7 +40,7 @@ function App() {
   const [records, setRecords] = useState([])
   const [activeRecord, setActiveRecord] = useState(null)
   const [resultBackTarget, setResultBackTarget] = useState('camera')
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(API_KEY_STORAGE_KEY) ?? '')
+  const [accessCode, setAccessCode] = useState(() => localStorage.getItem(ACCESS_CODE_STORAGE_KEY) ?? '')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -56,7 +57,7 @@ function App() {
   }, [])
 
   const handleQueueProcessing = useCallback(async () => {
-    if (!apiKey || queueIsRunningRef.current) {
+    if (!accessCode || queueIsRunningRef.current) {
       return
     }
 
@@ -65,7 +66,7 @@ function App() {
 
     try {
       await processOfflineQueue({
-        apiKey,
+        accessCode,
         onRecordUpdated: refreshRecords,
         onError: (error) => {
           console.error('Offline queue processing failed:', error)
@@ -76,7 +77,7 @@ function App() {
       queueIsRunningRef.current = false
       setIsSyncing(false)
     }
-  }, [apiKey, refreshRecords])
+  }, [accessCode, refreshRecords])
 
   useEffect(() => {
     refreshRecords()
@@ -96,21 +97,21 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (isOnline && apiKey) {
+    if (isOnline && accessCode) {
       handleQueueProcessing()
     }
-  }, [apiKey, handleQueueProcessing, isOnline])
+  }, [accessCode, handleQueueProcessing, isOnline])
 
-  const handleSaveApiKey = (nextApiKey) => {
-    const cleanedKey = nextApiKey.trim()
+  const handleSaveAccessCode = (nextCode) => {
+    const cleanedCode = nextCode.trim()
 
-    if (!cleanedKey) {
-      setErrorMessage('Enter a Claude API key or continue offline.')
+    if (!cleanedCode) {
+      setErrorMessage('Enter an access code or continue offline.')
       return
     }
 
-    localStorage.setItem(API_KEY_STORAGE_KEY, cleanedKey)
-    setApiKey(cleanedKey)
+    localStorage.setItem(ACCESS_CODE_STORAGE_KEY, cleanedCode)
+    setAccessCode(cleanedCode)
     setErrorMessage('')
   }
 
@@ -136,11 +137,11 @@ function App() {
       let source = 'online'
       let rawOcrText = null
 
-      if (isOnline && apiKey) {
+      if (isOnline && accessCode) {
         try {
           setProcessingLabel('Sending to Claude')
           result = await extractWithClaude({
-            apiKey,
+            accessCode,
             base64ImageData: processedImage.base64,
           })
         } catch (onlineError) {
@@ -252,13 +253,13 @@ function App() {
 
   return (
     <CameraScreen
-      apiKey={apiKey}
+      accessCode={accessCode}
       errorMessage={errorMessage}
       isOnline={isOnline}
       isProcessing={isProcessing}
       onCapture={handleCapture}
       onOpenHistory={() => setView('history')}
-      onSaveApiKey={handleSaveApiKey}
+      onSaveAccessCode={handleSaveAccessCode}
       processingLabel={processingLabel}
     />
   )

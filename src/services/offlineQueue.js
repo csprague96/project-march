@@ -2,8 +2,8 @@ import { extractWithClaude } from './claudeOCR'
 import { getQueuedCaptures, removeQueuedCapture, updateTriageRecord } from './db'
 import { preprocessImage } from './imagePreprocess'
 
-export async function processOfflineQueue({ apiKey, onRecordUpdated, onError }) {
-  if (!apiKey) {
+export async function processOfflineQueue({ accessCode, onRecordUpdated, onError }) {
+  if (!accessCode) {
     return
   }
 
@@ -13,7 +13,7 @@ export async function processOfflineQueue({ apiKey, onRecordUpdated, onError }) 
     try {
       const processedImage = await preprocessImage(queuedCapture.imageBlob)
       const upgradedResult = await extractWithClaude({
-        apiKey,
+        accessCode,
         base64ImageData: processedImage.base64,
       })
 

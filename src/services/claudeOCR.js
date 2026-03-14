@@ -106,46 +106,25 @@ export function normalizeTriageResult(payload = {}, overrides = {}) {
   return normalized
 }
 
-export async function extractWithClaude({ apiKey, base64ImageData }) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+// Sends base64 image data to our Vercel serverless function.
+// The access code (a shared password) is passed as a Bearer token —
+// the actual Anthropic API key never touches the client.
+export async function extractWithClaude({ accessCode, base64ImageData }) {
+  const response = await fetch('/api/process-triage', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      Authorization: `Bearer ${accessCode}`,
     },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1024,
-      system: MEDICAL_EXTRACTION_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: base64ImageData,
-              },
-            },
-            {
-              type: 'text',
-              text: 'Extract all medical fields from this Ukrainian TCCC casualty card. Return ONLY the JSON object, no other text.',
-            },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify({ base64ImageData }),
   })
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(errorText || 'Claude OCR request failed.')
+    throw new Error(errorText || 'Triage processing request failed.')
   }
 
+  // The serverless function returns the raw Anthropic payload; parse it here.
   const payload = await response.json()
   const parsedJson = extractJsonFromClaudeResponse(payload)
   return normalizeTriageResult(parsedJson)

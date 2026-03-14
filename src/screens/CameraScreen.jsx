@@ -5,18 +5,18 @@ import CaptureButton from '../components/CaptureButton'
 import { captureFrame, setTorch, startRearCamera, stopCamera } from '../services/camera'
 
 function CameraScreen({
-  apiKey,
+  accessCode,
   errorMessage,
   isOnline,
   isProcessing,
   onCapture,
   onOpenHistory,
-  onSaveApiKey,
+  onSaveAccessCode,
   processingLabel,
 }) {
   const videoRef = useRef(null)
   const [cameraError, setCameraError] = useState('')
-  const [apiKeyDraft, setApiKeyDraft] = useState(apiKey ?? '')
+  const [accessCodeDraft, setAccessCodeDraft] = useState(accessCode ?? '')
   const [torchEnabled, setTorchEnabled] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
 
@@ -109,36 +109,33 @@ function CameraScreen({
         </header>
 
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          {!apiKey ? (
+          {!accessCode ? (
             <div className="rounded-3xl border border-white/10 bg-black/55 p-5 shadow-panel backdrop-blur">
               <div className="flex items-start gap-3">
                 <KeyRound className="mt-1 h-5 w-5 text-[var(--triage-delayed)]" />
                 <div className="w-full space-y-4">
                   <div>
-                    <h1 className="text-lg font-semibold text-white">Save Claude API key</h1>
+                    <h1 className="text-lg font-semibold text-white">Enter Medic Access Code</h1>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                      Store it once in this browser for faster online OCR. You can still capture offline without it.
+                      Store it once in this browser for online OCR. You can still capture offline without it.
                     </p>
                   </div>
 
                   <input
-                    value={apiKeyDraft}
-                    onChange={(event) => setApiKeyDraft(event.target.value)}
-                    placeholder="sk-ant-api03-..."
+                    value={accessCodeDraft}
+                    onChange={(event) => setAccessCodeDraft(event.target.value)}
+                    placeholder="Enter access code..."
                     className="min-h-12 w-full rounded-2xl border border-white/10 bg-black/35 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25"
                   />
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => onSaveApiKey(apiKeyDraft)}
+                      onClick={() => onSaveAccessCode(accessCodeDraft)}
                       className="min-h-12 rounded-2xl bg-[var(--triage-immediate)] px-5 text-sm font-semibold text-white"
                     >
-                      Save key
+                      Save code
                     </button>
-                    <div className="flex min-h-12 items-center rounded-2xl border border-white/10 px-4 text-sm text-[var(--text-secondary)]">
-                      No settings screen by design. This keeps the workflow to 3 screens.
-                    </div>
                   </div>
                 </div>
               </div>
