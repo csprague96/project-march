@@ -106,12 +106,12 @@ function CameraScreen({
               {isOnline ? (
                 <span className="flex items-center gap-1.5">
                   <Wifi className="h-3.5 w-3.5" />
-                  <span className="hidden xs:inline">{t('online')}</span>
+                  {t('online')}
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 text-[var(--triage-delayed)]">
                   <WifiOff className="h-3.5 w-3.5" />
-                  <span className="hidden xs:inline">{t('offline')}</span>
+                  {t('offline')}
                 </span>
               )}
             </div>
