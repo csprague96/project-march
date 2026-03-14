@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-card: #1a1a1a;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --border: #2a2a2a;
+  --triage-immediate: #dc2626;
+  --triage-delayed: #f59e0b;
+  --triage-minimal: #22c55e;
+  --triage-expectant: #1a1a1a;
+  --status-online: #22c55e;
+  --status-offline: #f59e0b;
+  --status-error: #dc2626;
+  --blood-type-bg: #7f1d1d;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top, rgba(220, 38, 38, 0.12), transparent 30%),
+    var(--bg-primary);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.font-medical {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+}
+
+.shadow-panel {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+}
+
+.camera-vignette {
+  background:
+    linear-gradient(180deg, rgba(10, 10, 10, 0.7) 0%, rgba(10, 10, 10, 0.15) 30%, rgba(10, 10, 10, 0.3) 60%, rgba(10, 10, 10, 0.82) 100%);
+}
+
+.animate-panel-up {
+  animation: panel-up 220ms ease-out;
+}
+
+@keyframes panel-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
