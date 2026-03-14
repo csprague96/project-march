@@ -182,7 +182,7 @@ function App() {
       setView('result')
     } catch (error) {
       console.error(error)
-      setErrorMessage(error.message || t('captureError'))
+      setErrorMessage(error.message || String(error) || t('captureError'))
     } finally {
       setIsProcessing(false)
       setProcessingLabel(t('processing'))

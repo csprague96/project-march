@@ -25,10 +25,17 @@ async function createBitmap(blob) {
   }
 
   return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob)
     const image = new Image()
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('Unable to load the captured image.'))
-    image.src = URL.createObjectURL(blob)
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Unable to load the captured image.'))
+    }
+    image.src = objectUrl
   })
 }
 
@@ -46,6 +53,13 @@ export async function preprocessImage(
   canvas.width = width
   canvas.height = height
   context.drawImage(bitmap, 0, 0, width, height)
+
+  // Free the ImageBitmap from GPU memory immediately after drawing.
+  // Skipping this on memory-constrained devices (Android) can cause silent
+  // failures on subsequent captures.
+  if (typeof bitmap.close === 'function') {
+    bitmap.close()
+  }
 
   const imageData = context.getImageData(0, 0, width, height)
   const pixels = imageData.data

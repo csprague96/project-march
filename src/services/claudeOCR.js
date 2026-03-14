@@ -66,7 +66,11 @@ function extractJsonFromClaudeResponse(payload) {
     throw new Error('Claude did not return OCR text.')
   }
 
-  return JSON.parse(stripJsonCodeFence(responseText))
+  try {
+    return JSON.parse(stripJsonCodeFence(responseText))
+  } catch {
+    throw new Error(`Claude returned unreadable data. Raw response: ${responseText.slice(0, 120)}`)
+  }
 }
 
 export function normalizeTriageResult(payload = {}, overrides = {}) {

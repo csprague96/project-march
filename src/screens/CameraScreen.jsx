@@ -21,6 +21,7 @@ function CameraScreen({
   const [accessCodeDraft, setAccessCodeDraft] = useState(accessCode ?? '')
   const [torchEnabled, setTorchEnabled] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
+  const [captureFlash, setCaptureFlash] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -53,6 +54,9 @@ function CameraScreen({
   const handleCapture = async () => {
     try {
       const frame = await captureFrame(videoRef.current)
+      // Trigger the shutter flash immediately on capture, before processing starts.
+      setCaptureFlash(true)
+      setTimeout(() => setCaptureFlash(false), 350)
       await onCapture(frame)
     } catch (error) {
       setCameraError(error.message)
@@ -72,6 +76,8 @@ function CameraScreen({
     <section className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover opacity-70" autoPlay muted />
       <div className="camera-vignette absolute inset-0" />
+      {/* Shutter flash: fires on capture to confirm the photo was taken */}
+      {captureFlash ? <div className="animate-shutter-flash absolute inset-0 bg-white" /> : null}
 
       <div className="relative z-10 flex min-h-screen flex-col justify-between p-4 sm:p-6">
         <header className="flex items-center justify-between gap-2">
