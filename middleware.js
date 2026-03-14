@@ -17,8 +17,9 @@ export default function middleware(req) {
     return new Response('Access from this region is not permitted.', { status: 403 })
   }
 
-  // Pass the request through unmodified.
-  return new Response(null, { status: 200 })
+  // Returning undefined tells Vercel to continue serving the original request normally.
+  // Do NOT return a new Response() here — that would replace the response body with an empty page.
+  return undefined
 }
 
 export const config = {
