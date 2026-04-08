@@ -1,6 +1,13 @@
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
 const EVAC_PRIORITIES = ['Urgent', 'Priority', 'Routine']
 
+const TRIAGE_MAPPING = {
+  IMMEDIATE: ['IMMEDIATE', 'RED', 'ЧЕРВОНИЙ', 'НЕГАЙНО'],
+  DELAYED: ['DELAYED', 'YELLOW', 'ЖОВТИЙ', 'ВІДКЛАДЕНИЙ'],
+  MINIMAL: ['MINIMAL', 'GREEN', 'ЗЕЛЕНИЙ', 'ЛЕГКИЙ'],
+  EXPECTANT: ['EXPECTANT', 'BLACK', 'ЧОРНИЙ']
+}
+
 function toArray(value, allowNull = false) {
   if (value == null) {
     return allowNull ? null : []
@@ -22,24 +29,8 @@ function toArray(value, allowNull = false) {
   return allowNull && deduplicated.length === 0 ? null : deduplicated
 }
 
-  const cleaned = value
-    .toString()
-    .split(/[;,]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-
-  return allowNull && cleaned.length === 0 ? null : cleaned
-}
-
 function normalizeBloodType(value) {
   return BLOOD_TYPES.includes(value) ? value : null
-}
-
-const TRIAGE_MAPPING = {
-  IMMEDIATE: ['IMMEDIATE', 'RED', 'ЧЕРВОНИЙ', 'НЕГАЙНО'],
-  DELAYED: ['DELAYED', 'YELLOW', 'ЖОВТИЙ', 'ВІДКЛАДЕНИЙ'],
-  MINIMAL: ['MINIMAL', 'GREEN', 'ЗЕЛЕНИЙ', 'ЛЕГКИЙ'],
-  EXPECTANT: ['EXPECTANT', 'BLACK', 'ЧОРНИЙ']
 }
 
 function normalizeTriageCategory(value) {
@@ -128,9 +119,6 @@ export function normalizeTriageResult(payload = {}, overrides = {}) {
   return normalized
 }
 
-// Sends base64 image data to our Vercel serverless function.
-// The access code (a shared password) is passed as a Bearer token —
-// the actual Anthropic API key never touches the client.
 export async function extractWithClaude({ accessCode, base64ImageData }) {
   const response = await fetch('/api/process-triage', {
     method: 'POST',
@@ -142,7 +130,6 @@ export async function extractWithClaude({ accessCode, base64ImageData }) {
   })
 
   if (!response.ok) {
-    // The server returns JSON errors; extract the message for a readable throw.
     let errorMessage = `Server error ${response.status}`
     try {
       const errorBody = await response.json()
@@ -153,7 +140,6 @@ export async function extractWithClaude({ accessCode, base64ImageData }) {
     throw new Error(errorMessage)
   }
 
-  // The serverless function returns the raw Anthropic payload; parse it here.
   const payload = await response.json()
   const parsedJson = extractJsonFromClaudeResponse(payload)
   return normalizeTriageResult(parsedJson)
