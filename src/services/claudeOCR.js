@@ -6,10 +6,22 @@ function toArray(value, allowNull = false) {
     return allowNull ? null : []
   }
 
+  let cleaned = []
   if (Array.isArray(value)) {
-    const cleaned = value.map((item) => item?.toString().trim()).filter(Boolean)
-    return allowNull && cleaned.length === 0 ? null : cleaned
+    cleaned = value.map((item) => item?.toString().trim()).filter(Boolean)
+  } else {
+    cleaned = value
+      .toString()
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
   }
+
+  // Use a Set to remove exact duplicates
+  const deduplicated = [...new Set(cleaned)]
+  
+  return allowNull && deduplicated.length === 0 ? null : deduplicated
+}
 
   const cleaned = value
     .toString()
