@@ -17,7 +17,6 @@ function toArray(value, allowNull = false) {
       .filter(Boolean)
   }
 
-  // Use a Set to remove exact duplicates
   const deduplicated = [...new Set(cleaned)]
   
   return allowNull && deduplicated.length === 0 ? null : deduplicated
