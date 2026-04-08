@@ -162,12 +162,16 @@ function App() {
           needsReview: source === 'offline' || result.confidence < 0.6,
         })
 
-        // Queue offline captures for Claude upgrade when connectivity returns
+        // Queue offline captures for Claude upgrade when connectivity returns.
+        // Blobs cannot be stored in IndexedDB on iOS Safari — convert to
+        // ArrayBuffer (universally supported) and reconstruct on the way out.
         if (source === 'offline' && capture.blob) {
+          const imageBuffer = await capture.blob.arrayBuffer()
           await queueOfflineCapture({
             id: draftId,
             recordId: draftId,
-            imageBlob: capture.blob,
+            imageBuffer,
+            imageMimeType: capture.blob.type || 'image/jpeg',
             createdAt: draftRecord.createdAt,
           })
         }
