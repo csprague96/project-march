@@ -76,11 +76,15 @@ export function fuzzyIncludes(text = '', keyword = '', maxDistance = 2) {
   return windows.some((windowValue) => levenshteinDistance(windowValue, normalizedKeyword) <= maxDistance)
 }
 
-export function getDictionaryMatches(text = '', dictionary = {}, maxDistance = 2) {
+export function getDictionaryMatches(text = '', dictionary = {}) {
   const matches = new Set()
 
   Object.entries(dictionary).forEach(([keyword, translation]) => {
-    if (fuzzyIncludes(text, keyword, maxDistance)) {
+    let allowedDistance = 2;
+    if (keyword.length <= 3) allowedDistance = 0;
+    else if (keyword.length <= 6) allowedDistance = 1;
+
+    if (fuzzyIncludes(text, keyword, allowedDistance)) {
       matches.add(translation)
     }
   })
