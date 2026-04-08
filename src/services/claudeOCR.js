@@ -1,12 +1,5 @@
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
-const TRIAGE_CATEGORIES = ['IMMEDIATE', 'DELAYED', 'MINIMAL', 'EXPECTANT']
 const EVAC_PRIORITIES = ['Urgent', 'Priority', 'Routine']
-const TRIAGE_MAPPING = {
-  IMMEDIATE: ['IMMEDIATE', 'RED', 'ЧЕРВОНИЙ', 'НЕГАЙНО'],
-  DELAYED: ['DELAYED', 'YELLOW', 'ЖОВТИЙ', 'ВІДКЛАДЕНИЙ'],
-  MINIMAL: ['MINIMAL', 'GREEN', 'ЗЕЛЕНИЙ', 'ЛЕГКИЙ'],
-  EXPECTANT: ['EXPECTANT', 'BLACK', 'ЧОРНИЙ']
-}
 
 function toArray(value, allowNull = false) {
   if (value == null) {
@@ -31,21 +24,23 @@ function normalizeBloodType(value) {
   return BLOOD_TYPES.includes(value) ? value : null
 }
 
+const TRIAGE_MAPPING = {
+  IMMEDIATE: ['IMMEDIATE', 'RED', 'ЧЕРВОНИЙ', 'НЕГАЙНО'],
+  DELAYED: ['DELAYED', 'YELLOW', 'ЖОВТИЙ', 'ВІДКЛАДЕНИЙ'],
+  MINIMAL: ['MINIMAL', 'GREEN', 'ЗЕЛЕНИЙ', 'ЛЕГКИЙ'],
+  EXPECTANT: ['EXPECTANT', 'BLACK', 'ЧОРНИЙ']
+}
+
 function normalizeTriageCategory(value) {
   if (!value) return null;
 
   const upperValue = value.toString().trim().toUpperCase();
 
-  // Find which category array contains the extracted word
   const matchedCategory = Object.entries(TRIAGE_MAPPING).find(([category, keywords]) => 
     keywords.includes(upperValue)
   );
 
   return matchedCategory ? matchedCategory[0] : null;
-}
-
-  const upperValue = value.toString().trim().toUpperCase()
-  return TRIAGE_CATEGORIES.includes(upperValue) ? upperValue : null
 }
 
 function normalizeEvacuationPriority(value) {
