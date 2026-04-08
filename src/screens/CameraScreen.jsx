@@ -1,5 +1,5 @@
-import { Flashlight, Globe, History, KeyRound, LoaderCircle, TriangleAlert, Wifi, WifiOff } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Flashlight, Globe, History, Inbox, KeyRound, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import CaptureButton from '../components/CaptureButton'
 import { useTranslation } from '../contexts/LanguageContext'
@@ -9,55 +9,61 @@ function CameraScreen({
   accessCode,
   errorMessage,
   isOnline,
-  isProcessing,
   onCapture,
   onOpenHistory,
+  onOpenInbox,
   onSaveAccessCode,
-  processingLabel,
+  pendingCount = 0,
 }) {
   const { language, t, toggleLanguage } = useTranslation()
   const videoRef = useRef(null)
-  const [cameraError, setCameraError] = useState('')
+  const [cameraError, setCameraError] = useState(null)
   const [accessCodeDraft, setAccessCodeDraft] = useState(accessCode ?? '')
   const [torchEnabled, setTorchEnabled] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [captureFlash, setCaptureFlash] = useState(false)
+  const [frozenFrame, setFrozenFrame] = useState(null)
 
-  useEffect(() => {
-    let isMounted = true
-
-    async function connectCamera() {
+  const connectCamera = useCallback(async () => {
+    setCameraError(null)
+    try {
+      const { torchSupported: hasTorch } = await startRearCamera(videoRef.current)
+      setTorchSupported(hasTorch)
+    } catch {
+      // First attempt can fail transiently — the camera device may still be
+      // releasing from a previous stream (common with React StrictMode's
+      // double-mount in development, or rapid reloads on device). Wait briefly
+      // and retry once before surfacing any error to the user.
+      await new Promise((r) => setTimeout(r, 600))
       try {
         const { torchSupported: hasTorch } = await startRearCamera(videoRef.current)
-
-        if (!isMounted) {
-          return
-        }
-
         setTorchSupported(hasTorch)
-        setCameraError('')
-      } catch (error) {
-        if (isMounted) {
-          setCameraError(error.message)
-        }
+      } catch (finalError) {
+        const isPermissionError = finalError.name === 'NotAllowedError' || finalError.name === 'PermissionDeniedError'
+        setCameraError(isPermissionError ? 'permission_denied' : finalError.message)
       }
     }
-
-    connectCamera()
-
-    return () => {
-      isMounted = false
-      stopCamera()
-    }
   }, [])
+
+  useEffect(() => {
+    connectCamera()
+    return () => stopCamera()
+  }, [connectCamera])
 
   const handleCapture = async () => {
     try {
       const frame = await captureFrame(videoRef.current)
-      // Trigger the shutter flash immediately on capture, before processing starts.
+      // Freeze the feed for 0.5 s so the medic can see the captured frame,
+      // then resume the live view. Flash and freeze share the same timer.
       setCaptureFlash(true)
-      setTimeout(() => setCaptureFlash(false), 350)
-      await onCapture(frame)
+      setFrozenFrame(frame.dataUrl)
+      setTimeout(() => {
+        setCaptureFlash(false)
+        setFrozenFrame(null)
+      }, 500)
+      // Fire-and-forget — OCR runs in the background worker.
+      // The camera stays live and the user can capture again immediately.
+      onCapture(frame)
     } catch (error) {
       setCameraError(error.message)
     }
@@ -75,6 +81,8 @@ function CameraScreen({
   return (
     <section className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover opacity-70" autoPlay muted />
+      {/* Frozen frame: displayed for 0.5 s after capture to confirm the shot */}
+      {frozenFrame ? <img src={frozenFrame} className="absolute inset-0 h-full w-full object-cover opacity-70" aria-hidden="true" alt="" /> : null}
       <div className="camera-vignette absolute inset-0" />
       {/* Shutter flash: fires on capture to confirm the photo was taken */}
       {captureFlash ? <div className="animate-shutter-flash absolute inset-0 bg-white" /> : null}
@@ -168,11 +176,41 @@ function CameraScreen({
             </div>
           ) : null}
 
-          {cameraError || errorMessage ? (
+          {cameraError === 'permission_denied' ? (
+            <div className="rounded-2xl border border-[var(--triage-immediate)]/35 bg-[var(--triage-immediate)]/14 p-4 text-sm text-white">
+              <div className="flex items-start gap-3">
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-[var(--triage-immediate)]" />
+                <div className="space-y-2">
+                  <p className="font-semibold">{t('cameraPermissionDenied')}</p>
+                  <p className="text-white/70">{t('cameraPermissionHint')}</p>
+                  <button
+                    type="button"
+                    onClick={connectCamera}
+                    className="mt-1 flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    {t('retryCamera')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : cameraError || errorMessage ? (
             <div className="rounded-2xl border border-[var(--triage-immediate)]/35 bg-[var(--triage-immediate)]/14 p-4 text-sm text-white">
               <div className="flex items-start gap-3">
                 <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-                <span>{cameraError || errorMessage}</span>
+                <div className="space-y-2">
+                  <span>{cameraError || errorMessage}</span>
+                  {cameraError ? (
+                    <button
+                      type="button"
+                      onClick={connectCamera}
+                      className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {t('retryCamera')}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : null}
@@ -182,15 +220,25 @@ function CameraScreen({
           </div>
         </div>
 
-        <footer className="flex flex-col items-center gap-4 pb-4">
-          {isProcessing ? (
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              {processingLabel}
-            </div>
-          ) : null}
+        <footer className="relative flex flex-col items-center gap-4 pb-4">
+          <CaptureButton onClick={handleCapture} />
 
-          <CaptureButton disabled={isProcessing} isProcessing={isProcessing} onClick={handleCapture} />
+          {/* Inbox button: bottom-right, shows count of captures awaiting review */}
+          <div className="absolute right-0 bottom-4">
+            <button
+              type="button"
+              onClick={onOpenInbox}
+              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
+              aria-label={t('inbox')}
+            >
+              <Inbox className="h-5 w-5" />
+              {pendingCount > 0 ? (
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--triage-immediate)] px-1 text-[10px] font-bold text-white">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
         </footer>
       </div>
     </section>

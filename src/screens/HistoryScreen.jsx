@@ -1,4 +1,4 @@
-import { ChevronLeft, Clock3 } from 'lucide-react'
+import { ChevronLeft, Clock3, LoaderCircle } from 'lucide-react'
 
 import { useTranslation } from '../contexts/LanguageContext'
 
@@ -35,49 +35,71 @@ function HistoryScreen({ isSyncing, onBack, onOpenRecord, records }) {
 
         {records.length ? (
           <div className="space-y-3">
-            {records.map((record) => (
-              <button
-                type="button"
-                key={record.id}
-                onClick={() => onOpenRecord(record)}
-                className="flex w-full flex-col gap-3 rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition hover:border-white/15"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-semibold text-[var(--text-primary)]">
-                      {record.patient_name ?? t('unknownPatient')}
+            {records.map((record) => {
+              const isPending = record.status === 'pending'
+              const isError = record.status === 'error'
+
+              return (
+                <button
+                  type="button"
+                  key={record.id}
+                  onClick={() => onOpenRecord(record)}
+                  disabled={isPending}
+                  className={`flex w-full flex-col gap-3 rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition ${isPending ? 'cursor-default opacity-60' : 'hover:border-white/15'}`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      {isPending ? (
+                        <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">{t('pendingOcr')}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-lg font-semibold text-[var(--text-primary)]">
+                            {record.patient_name ?? t('unknownPatient')}
+                          </div>
+                          <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                            {record.unit ?? t('unitNotCaptured')}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                      {record.unit ?? t('unitNotCaptured')}
-                    </div>
+
+                    {!isPending ? (
+                      <span
+                        className="rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
+                        style={{ backgroundColor: TRIAGE_COLORS[record.triage_category] ?? 'var(--border)' }}
+                      >
+                        {record.triage_category ?? t('unclassified')}
+                      </span>
+                    ) : null}
                   </div>
 
-                  <span
-                    className="rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
-                    style={{ backgroundColor: TRIAGE_COLORS[record.triage_category] ?? 'var(--border)' }}
-                  >
-                    {record.triage_category ?? t('unclassified')}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--text-secondary)]">
-                  <span className="inline-flex items-center gap-2">
-                    <Clock3 className="h-4 w-4" />
-                    {new Date(record.createdAt).toLocaleString()}
-                  </span>
-                  {record.wasUpgraded ? (
-                    <span className="rounded-full border border-[var(--triage-minimal)]/30 bg-[var(--triage-minimal)]/10 px-3 py-1 text-xs text-[var(--triage-minimal)]">
-                      {t('upgraded')}
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--text-secondary)]">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock3 className="h-4 w-4" />
+                      {new Date(record.createdAt).toLocaleString()}
                     </span>
-                  ) : null}
-                  {record.source === 'offline' ? (
-                    <span className="rounded-full border border-[var(--triage-delayed)]/30 bg-[var(--triage-delayed)]/10 px-3 py-1 text-xs text-[var(--triage-delayed)]">
-                      {t('offlineVerify')}
-                    </span>
-                  ) : null}
-                </div>
-              </button>
-            ))}
+                    {isError ? (
+                      <span className="rounded-full border border-[var(--triage-immediate)]/30 bg-[var(--triage-immediate)]/10 px-3 py-1 text-xs text-[var(--triage-immediate)]">
+                        {t('captureError')}
+                      </span>
+                    ) : null}
+                    {record.wasUpgraded ? (
+                      <span className="rounded-full border border-[var(--triage-minimal)]/30 bg-[var(--triage-minimal)]/10 px-3 py-1 text-xs text-[var(--triage-minimal)]">
+                        {t('upgraded')}
+                      </span>
+                    ) : null}
+                    {record.source === 'offline' && !isPending ? (
+                      <span className="rounded-full border border-[var(--triage-delayed)]/30 bg-[var(--triage-delayed)]/10 px-3 py-1 text-xs text-[var(--triage-delayed)]">
+                        {t('offlineVerify')}
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         ) : (
           <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] p-8 text-center text-[var(--text-secondary)]">

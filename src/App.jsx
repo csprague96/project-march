@@ -5,7 +5,7 @@ import HistoryScreen from './screens/HistoryScreen'
 import ResultScreen from './screens/ResultScreen'
 import { useTranslation } from './contexts/LanguageContext'
 import { extractWithClaude } from './services/claudeOCR'
-import { getAllTriageRecords, queueOfflineCapture, saveTriageRecord } from './services/db'
+import { getAllTriageRecords, queueOfflineCapture, saveTriageRecord, updateTriageRecord } from './services/db'
 import { preprocessImage } from './services/imagePreprocess'
 import { processOfflineQueue } from './services/offlineQueue'
 import { extractWithTesseract } from './services/tesseractOCR'
@@ -24,6 +24,7 @@ function createPersistedRecord(result, metadata = {}) {
     id: metadata.id ?? createRecordId(),
     createdAt: timestamp,
     updatedAt: timestamp,
+    status: metadata.status ?? 'done',
     source: metadata.source ?? 'online',
     needsReview: metadata.needsReview ?? false,
     wasUpgraded: metadata.wasUpgraded ?? false,
@@ -44,14 +45,15 @@ function App() {
   const [resultBackTarget, setResultBackTarget] = useState('camera')
   const [accessCode, setAccessCode] = useState(() => localStorage.getItem(ACCESS_CODE_STORAGE_KEY) ?? '')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
-  const [isProcessing, setIsProcessing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [processingLabel, setProcessingLabel] = useState(() => t('processing'))
   const [errorMessage, setErrorMessage] = useState('')
   const queueIsRunningRef = useRef(false)
 
   const savedRecordIds = useMemo(() => new Set(records.map((record) => record.id)), [records])
+
+  // Count of captures whose OCR is still running in the background worker
+  const pendingCount = useMemo(() => records.filter((r) => r.status === 'pending').length, [records])
 
   const refreshRecords = useCallback(async () => {
     const nextRecords = await getAllTriageRecords()
@@ -118,6 +120,9 @@ function App() {
   }
 
   const openResultFromHistory = (record) => {
+    // Pending records have no OCR result yet — only open completed ones
+    if (record.status === 'pending') return
+
     setActiveRecord(record)
     setResultBackTarget('history')
     setView('result')
@@ -129,63 +134,73 @@ function App() {
     }
 
     setErrorMessage('')
-    setIsProcessing(true)
 
     try {
-      setProcessingLabel(t('preprocessingImage'))
       const processedImage = await preprocessImage(capture.blob)
 
-      let result
-      let source = 'online'
-      let rawOcrText = null
-
-      if (isOnline && accessCode) {
-        try {
-          setProcessingLabel(t('sendingToClaude'))
-          result = await extractWithClaude({
-            accessCode,
-            base64ImageData: processedImage.base64,
-          })
-        } catch (onlineError) {
-          console.warn('Claude OCR failed, falling back to Tesseract:', onlineError)
-          setProcessingLabel(t('claudeFailedOffline'))
-          const offlineResult = await extractWithTesseract({
-            blob: processedImage.blob,
-          })
-          result = offlineResult.result
-          rawOcrText = offlineResult.rawText
-          source = 'offline'
-        }
-      } else {
-        setProcessingLabel(t('runningOfflineOcr'))
-        const offlineResult = await extractWithTesseract({
-          blob: processedImage.blob,
-        })
-        result = offlineResult.result
-        rawOcrText = offlineResult.rawText
-        source = 'offline'
-      }
-
-      const draftRecord = createPersistedRecord(result, {
-        source,
-        needsReview: source === 'offline' || result.confidence < 0.6,
+      // 1. Write a draft record to IDB immediately so the Inbox badge increments
+      //    and the medic can fire the next shot without waiting for OCR.
+      const draftId = createRecordId()
+      const draftRecord = createPersistedRecord({}, {
+        id: draftId,
+        status: 'pending',
+        source: 'offline',
         imageDataUrl: capture.dataUrl,
         processedImageDataUrl: processedImage.dataUrl,
-        rawOcrText,
       })
 
-      // Keep the original image blob in memory until the user decides to save.
-      draftRecord.imageBlob = capture.blob
+      await saveTriageRecord(draftRecord)
+      await refreshRecords()
 
-      setActiveRecord(draftRecord)
-      setResultBackTarget('camera')
-      setView('result')
+      // 2. Helper called when OCR finishes (either path).
+      const handleOcrDone = async (result, rawText, source) => {
+        await updateTriageRecord(draftId, {
+          ...result,
+          rawOcrText: rawText,
+          status: 'done',
+          source,
+          needsReview: source === 'offline' || result.confidence < 0.6,
+        })
+
+        // Queue offline captures for Claude upgrade when connectivity returns
+        if (source === 'offline' && capture.blob) {
+          await queueOfflineCapture({
+            id: draftId,
+            recordId: draftId,
+            imageBlob: capture.blob,
+            createdAt: draftRecord.createdAt,
+          })
+        }
+
+        await refreshRecords()
+      }
+
+      // 3. Helper called if OCR fails entirely.
+      const handleOcrError = async (error) => {
+        console.error('OCR failed:', error)
+        await updateTriageRecord(draftId, { status: 'error' })
+        setErrorMessage(error.message || t('captureError'))
+        await refreshRecords()
+      }
+
+      // 4. Fire OCR — no await. Camera stays live immediately.
+      if (isOnline && accessCode) {
+        extractWithClaude({ accessCode, base64ImageData: processedImage.base64 })
+          .then((result) => handleOcrDone(result, null, 'online'))
+          .catch((onlineError) => {
+            console.warn('Claude failed, falling back to Tesseract:', onlineError)
+            return extractWithTesseract({ blob: processedImage.blob, id: draftId })
+              .then(({ result, rawText }) => handleOcrDone(result, rawText, 'offline'))
+          })
+          .catch(handleOcrError)
+      } else {
+        extractWithTesseract({ blob: processedImage.blob, id: draftId })
+          .then(({ result, rawText }) => handleOcrDone(result, rawText, 'offline'))
+          .catch(handleOcrError)
+      }
     } catch (error) {
       console.error(error)
       setErrorMessage(error.message || String(error) || t('captureError'))
-    } finally {
-      setIsProcessing(false)
-      setProcessingLabel(t('processing'))
     }
   }
 
@@ -258,11 +273,11 @@ function App() {
       accessCode={accessCode}
       errorMessage={errorMessage}
       isOnline={isOnline}
-      isProcessing={isProcessing}
       onCapture={handleCapture}
       onOpenHistory={() => setView('history')}
+      onOpenInbox={() => setView('history')}
       onSaveAccessCode={handleSaveAccessCode}
-      processingLabel={processingLabel}
+      pendingCount={pendingCount}
     />
   )
 }

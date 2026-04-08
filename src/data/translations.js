@@ -1,8 +1,12 @@
+// Cache-bust key
+const _CACHE_BUST = 'v1-' + Date.now()
+
 const translations = {
   en: {
     // Navigation
     camera: 'Camera',
     history: 'History',
+    inbox: 'Inbox',
     backToCamera: 'Back to Camera',
     backToHistory: 'Back to History',
     back: 'Back',
@@ -72,6 +76,11 @@ const translations = {
     offlineBannerVerify: 'OFFLINE - VERIFY',
     offlineBannerUpgraded: 'Previously offline result upgraded with Claude verification.',
 
+    // Camera permission
+    cameraPermissionDenied: 'Camera access was blocked.',
+    cameraPermissionHint: 'Your browser denied camera access — this is usually because you clicked "Block", or the browser remembered a previous block. Click the camera or lock icon in the address bar to allow access, then tap Retry.',
+    retryCamera: 'Retry camera access',
+
     // Error / validation
     enterAccessCodeError: 'Enter an access code or continue offline.',
     captureError: 'The card could not be processed. Try again.',
@@ -83,11 +92,30 @@ const translations = {
     sendingToClaude: 'Sending to Claude',
     claudeFailedOffline: 'Claude failed, running offline OCR',
     runningOfflineOcr: 'Running offline OCR',
+    pendingOcr: 'Processing...',
 
     // Confidence indicator
     confidence: 'Confidence',
     lowConfidenceWarning: 'LOW CONFIDENCE - VERIFY MANUALLY',
     noKnownAllergies: 'NO KNOWN ALLERGIES',
+
+    // Form type badge
+    formTypeBadgeDD1380: 'DD-1380',
+    formTypeBadgeFORM100: 'FORM 100',
+
+    // Form 100 section
+    form100Section: 'Primary Medical Card (Form 100)',
+    dateOfBirth: 'Date of birth',
+    gender: 'Gender',
+    idNumber: 'ID number',
+    diagnosis: 'Diagnosis',
+    diagnosisCode: 'Code',
+    evacuationDestination: 'Evacuation destination',
+    providerName: 'Provider',
+    preMedicalAid: 'Pre-medical aid',
+    medicalAid: 'Medical aid',
+    noPreMedicalAid: 'No pre-medical aid documented.',
+    noMedicalAid: 'No medical aid documented.',
 
     // Language toggle aria label
     toggleLanguage: 'Toggle language',
@@ -97,6 +125,7 @@ const translations = {
     // Navigation
     camera: 'Камера',
     history: 'Журнал',
+    inbox: 'Вхідні',
     backToCamera: 'Повернутись до камери',
     backToHistory: 'Повернутись до журналу',
     back: 'Назад',
@@ -167,6 +196,11 @@ const translations = {
     offlineBannerVerify: 'ОФЛАЙН — ПЕРЕВІРИТИ',
     offlineBannerUpgraded: 'Попередній офлайн-результат оновлено через перевірку Claude.',
 
+    // Camera permission
+    cameraPermissionDenied: 'Доступ до камери заблоковано.',
+    cameraPermissionHint: 'Ваш браузер відмовив у доступі до камери — зазвичай це відбувається через те, що ви натиснули «Заблокувати» або браузер зберіг налаштування попереднього блокування. Натисніть на піктограму камери або замка в адресному рядку, щоб дозволити доступ, а потім натисніть «Спробувати ще раз».',
+    retryCamera: 'Спробувати ще раз',
+
     // Error / validation
     enterAccessCodeError: 'Введіть код доступу або продовжте в офлайн-режимі.',
     captureError: 'Картку не вдалось обробити. Спробуйте ще раз.',
@@ -178,11 +212,30 @@ const translations = {
     sendingToClaude: 'Відправка до Claude',
     claudeFailedOffline: 'Claude недоступний, запуск офлайн-розпізнавання',
     runningOfflineOcr: 'Офлайн-розпізнавання',
+    pendingOcr: 'Обробка...',
 
     // Confidence indicator
     confidence: 'Впевненість',
     lowConfidenceWarning: 'НИЗЬКА ВПЕВНЕНІСТЬ — ПЕРЕВІРИТИ ВРУЧНУ',
     noKnownAllergies: 'АЛЕРГІЇ НЕВІДОМІ',
+
+    // Form type badge
+    formTypeBadgeDD1380: 'ДД-1380',
+    formTypeBadgeFORM100: 'ФОРМА 100',
+
+    // Form 100 section
+    form100Section: 'Первинна медична картка (Форма 100)',
+    dateOfBirth: 'Дата народження',
+    gender: 'Стать',
+    idNumber: 'Номер ID',
+    diagnosis: 'Діагноз',
+    diagnosisCode: 'Код',
+    evacuationDestination: 'Місце евакуації',
+    providerName: 'Лікар',
+    preMedicalAid: 'Долікарська допомога',
+    medicalAid: 'Медична допомога',
+    noPreMedicalAid: 'Долікарська допомога не задокументована.',
+    noMedicalAid: 'Медична допомога не задокументована.',
 
     // Language toggle aria label
     toggleLanguage: 'Змінити мову',
