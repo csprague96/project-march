@@ -184,6 +184,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 2048,
+        temperature: 0,
         system: MEDICAL_EXTRACTION_SYSTEM_PROMPT,
         messages: [
           {
