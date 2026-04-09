@@ -165,62 +165,181 @@ Treatments:
 - ШВЛ = mechanical ventilation
 - Санітарна обробка = sanitary/decontamination treatment
 
-## OUTPUT FORMAT
+## CONFIDENCE SCORING
+Score 0.0–1.0 reflecting overall legibility and completeness. Fully legible with all fields = 0.95. Partial legibility or missing key fields = 0.5–0.7. Nearly unreadable = below 0.4. Reduce confidence if tourniquet, blood type, or triage category are uncertain — do not null them.`
 
-Return ONLY a valid JSON object. No markdown, no explanation, no code fences.
-
-{
-  "patient_name": string | null,
-  "military_id": string | null,
-  "individual_number": string | null,
-  "blood_type": string | null,
-  "allergies": string[] | null,
-  "unit": string | null,
-  "date_time": string | null,
-  "evacuation_type": string | null,
-  "mechanism_of_injury": string[],
-  "injuries": string | null,
-  "injury_locations": string[] | null,
-  "vital_signs": {
-    "time": string | null,
-    "pulse": string | null,
-    "blood_pressure": string | null,
-    "respiratory_rate": string | null,
-    "spo2": string | null,
-    "avpu": string | null,
-    "pain_scale": string | null
+const EXTRACTION_TOOL = {
+  name: 'extract_triage_data',
+  description: 'Extract structured medical data from a Ukrainian TCCC casualty card. ALL text values must be translated to English.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      patient_name: {
+        type: 'string',
+        description: 'Patient full name transliterated from Cyrillic to Latin script. Null if unreadable.',
+      },
+      military_id: {
+        type: 'string',
+        description: 'Military ID from ВІЙСЬКОВИЙ № field.',
+      },
+      individual_number: {
+        type: 'string',
+        description: 'Individual number from ІНД.№ field.',
+      },
+      blood_type: {
+        type: 'string',
+        enum: ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'],
+        description: 'Blood type. Map Cyrillic: І=O, ІІ=A, ІІІ=B, ІV=AB.',
+      },
+      allergies: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Allergies in English. Empty array if "немає"/"нема" (none). Null if field not present.',
+      },
+      unit: {
+        type: 'string',
+        description: 'Military unit from ПІДРОЗДІЛ field, in English.',
+      },
+      date_time: {
+        type: 'string',
+        description: 'Date and time from ДАТА and ЧАС fields. Preserve exact digits written.',
+      },
+      evacuation_type: {
+        type: 'string',
+        description: 'From ТИП ЕВАКУАЦІЇ at TOP of card. Translate: автомобільна=automobile, швидка=rapid evacuation, гелікоптером=helicopter. Null if unclear.',
+      },
+      mechanism_of_injury: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Injury mechanisms IN ENGLISH. Translate: Вогнепальне=Gunshot wound, Артилерія=Artillery, Міна=Mine, etc.',
+      },
+      injuries: {
+        type: 'string',
+        description: 'Injury description IN ENGLISH. Translate all Ukrainian text.',
+      },
+      injury_locations: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Body parts affected IN ENGLISH (e.g., "right arm", "left leg", "head").',
+      },
+      vital_signs: {
+        type: 'object',
+        properties: {
+          time: { type: 'string', description: 'Time vitals were recorded.' },
+          pulse: { type: 'string', description: 'Heart rate in bpm.' },
+          blood_pressure: { type: 'string', description: 'Systolic/diastolic (e.g., "120/80"). Read carefully from Кров\'яний тиск row.' },
+          respiratory_rate: { type: 'string', description: 'Breaths per minute.' },
+          spo2: { type: 'string', description: 'Oxygen saturation percentage. Read from SpO2/Пульс ОкС row.' },
+          avpu: {
+            type: 'string',
+            enum: ['A', 'V', 'P', 'U'],
+            description: 'Consciousness level. Exactly ONE of: A=Alert, V=Voice, P=Pain, U=Unresponsive.',
+          },
+          pain_scale: { type: 'string', description: 'Pain score from Шкала болю row (0-10).' },
+        },
+      },
+      treatments: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Procedures IN ENGLISH (e.g., "tourniquet applied", "wound packed", "IV access").',
+      },
+      medications: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Simple medication name list IN ENGLISH.',
+      },
+      medications_detailed: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            category: { type: 'string', description: 'Category: analgesic, antibiotic, or other.' },
+            name: { type: 'string', description: 'Drug name IN ENGLISH. Кетанов=Ketorolac (NOT Ketoprofen). Морфін=Morphine.' },
+            dose: { type: 'string', description: 'Dosage with units (e.g., "10mg").' },
+            route: { type: 'string', description: 'Route: oral, IV, IM, etc.' },
+            time: { type: 'string', description: 'Time administered.' },
+          },
+          required: ['name'],
+        },
+        description: 'Detailed medications from ЛКІ section. Extract EACH sub-row (Аналгетики, Антибіотики, Інші) separately.',
+      },
+      fluids: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['fluid', 'blood'], description: 'fluid or blood product.' },
+            name: { type: 'string', description: 'Fluid name IN ENGLISH (e.g., "Ringer\'s solution").' },
+            volume: { type: 'string', description: 'Volume (e.g., "500ml").' },
+            route: { type: 'string', description: 'Route (e.g., "IV").' },
+            time: { type: 'string', description: 'Time administered.' },
+          },
+          required: ['name'],
+        },
+        description: 'IV fluids and blood products from the С section.',
+      },
+      tourniquet: {
+        type: 'object',
+        properties: {
+          applied: { type: 'boolean', description: 'True if ANY tourniquet section has data filled in.' },
+          location: { type: 'string', description: 'Body part IN ENGLISH (e.g., "right arm").' },
+          time: { type: 'string', description: 'Time applied.' },
+        },
+        required: ['applied'],
+        description: 'Primary tourniquet. Derived from first filled tourniquet section on card.',
+      },
+      tourniquets: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            location: { type: 'string', description: 'Body part IN ENGLISH.' },
+            type: { type: 'string', description: 'Tourniquet type if written.' },
+            time: { type: 'string', description: 'Time applied.' },
+          },
+          required: ['location'],
+        },
+        description: 'ALL tourniquets. Check each of the 4 limb sections (Пр. руки, Л. руки, Пр. ноги, Л. ноги).',
+      },
+      march_therapies: {
+        type: 'object',
+        properties: {
+          massive_hemorrhage: { type: 'array', items: { type: 'string' }, description: 'M interventions IN ENGLISH.' },
+          airway: { type: 'array', items: { type: 'string' }, description: 'A interventions IN ENGLISH.' },
+          respiration: { type: 'array', items: { type: 'string' }, description: 'R interventions IN ENGLISH.' },
+          circulation: { type: 'array', items: { type: 'string' }, description: 'C interventions IN ENGLISH.' },
+          secondary: { type: 'array', items: { type: 'string' }, description: 'S interventions IN ENGLISH.' },
+        },
+      },
+      triage_category: {
+        type: 'string',
+        enum: ['IMMEDIATE', 'DELAYED', 'MINIMAL', 'EXPECTANT'],
+        description: 'Червоний=IMMEDIATE, Жовтий=DELAYED, Зелений=MINIMAL, Чорний=EXPECTANT.',
+      },
+      evacuation_priority: {
+        type: 'string',
+        enum: ['Urgent', 'Priority', 'Routine'],
+      },
+      first_responder: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'ПЕРШИЙ РЯТІВНИК name transliterated to Latin. This is NOT the patient — read from the bottom of the card.' },
+          id: { type: 'string', description: 'First responder individual number.' },
+        },
+        description: 'First responder from ПЕРШИЙ РЯТІВНИК section at BOTTOM of card. MUST be different from patient.',
+      },
+      notes: {
+        type: 'string',
+        description: 'ONLY text from the НОТАТКИ section, translated to English. Do NOT generate or infer content. Null if empty/illegible.',
+      },
+      confidence: {
+        type: 'number',
+        description: 'Extraction confidence 0.0-1.0. Fully legible=0.95, partial=0.5-0.7, unreadable<0.4.',
+      },
+    },
+    required: ['mechanism_of_injury', 'treatments', 'medications', 'tourniquet', 'confidence'],
   },
-  "treatments": string[],
-  "medications": string[],
-  "medications_detailed": [
-    { "category": string | null, "name": string, "dose": string | null, "route": string | null, "time": string | null }
-  ],
-  "fluids": [
-    { "type": "fluid" | "blood", "name": string, "volume": string | null, "route": string | null, "time": string | null }
-  ],
-  "tourniquet": {
-    "applied": boolean,
-    "location": string | null,
-    "time": string | null
-  },
-  "tourniquets": [
-    { "location": string, "type": string | null, "time": string | null }
-  ],
-  "march_therapies": {
-    "massive_hemorrhage": string[],
-    "airway": string[],
-    "respiration": string[],
-    "circulation": string[],
-    "secondary": string[]
-  },
-  "triage_category": string | null,
-  "evacuation_priority": string | null,
-  "first_responder": { "name": string | null, "id": string | null } | null,
-  "notes": string | null,
-  "confidence": number
 }
-
-For confidence: score 0.0–1.0 reflecting overall legibility and completeness. A fully legible card with all fields populated = 0.95. Partial legibility or missing key fields = 0.5–0.7. Nearly unreadable = below 0.4. Reduce confidence if tourniquet, blood type, or triage category are uncertain — do not null them.`
 
 export default async function handler(req, res) {
   // Only accept POST
@@ -255,9 +374,11 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 2048,
+        max_tokens: 4096,
         temperature: 0,
         system: MEDICAL_EXTRACTION_SYSTEM_PROMPT,
+        tools: [EXTRACTION_TOOL],
+        tool_choice: { type: 'tool', name: 'extract_triage_data' },
         messages: [
           {
             role: 'user',
@@ -272,7 +393,7 @@ export default async function handler(req, res) {
               },
               {
                 type: 'text',
-                text: 'Extract all medical fields from this Ukrainian TCCC casualty card. Return ONLY the JSON object, no other text.',
+                text: 'Extract all medical fields from this Ukrainian TCCC casualty card. Translate ALL text to English.',
               },
             ],
           },

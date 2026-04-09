@@ -68,13 +68,21 @@ function stripJsonCodeFence(value) {
 
 function extractJsonFromClaudeResponse(payload) {
   const contentBlocks = Array.isArray(payload?.content) ? payload.content : []
+
+  // Tool Use response: structured data in tool_use block
+  const toolUseBlock = contentBlocks.find((block) => block.type === 'tool_use')
+  if (toolUseBlock?.input) {
+    return toolUseBlock.input
+  }
+
+  // Fallback: legacy text-based JSON response
   const responseText = contentBlocks
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('\n')
 
   if (!responseText.trim()) {
-    throw new Error('Claude did not return OCR text.')
+    throw new Error('Claude did not return extraction data.')
   }
 
   try {
