@@ -60,9 +60,10 @@ These fields use a LOWER confidence threshold. If you can see the information bu
 - Return each in the "tourniquets" array. Do NOT collapse multiple tourniquets into one.
 
 ### BLOOD TYPE
-- Written as: ГК, група крові, or the blood type directly (A+, B-, O+, AB+, etc.)
-- Cyrillic blood type notation: І(O), ІІ(A), ІІІ(B), ІV(AB)
-- Include Rh factor if written (+ or -)
+- ONLY extract if a dedicated blood type field (ГК, група крові) exists on the card AND has a value written in it.
+- Many card versions do NOT include a blood type field. If missing or blank, set to null.
+- Do NOT guess or infer blood type from other markings on the card.
+- If present: Cyrillic notation І(O), ІІ(A), ІІІ(B), ІV(AB). Include Rh factor if written (+ or -).
 
 ### NAMES
 - Transliterate all names (patient, first responder) from Cyrillic to Latin script (e.g. "ЛЕМЕХА ПЕТРО" → "LEMEKHA PETRO", "ОКРОШКО ГАЛИНА" → "OKROSHKO HALYNA"). Use standard Ukrainian transliteration.
@@ -189,7 +190,7 @@ const EXTRACTION_TOOL = {
       blood_type: {
         type: 'string',
         enum: ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'],
-        description: 'Blood type. Map Cyrillic: І=O, ІІ=A, ІІІ=B, ІV=AB.',
+        description: 'ONLY if a dedicated blood type field (ГК, група крові) exists on the card AND has a value written in it. Many card versions do not include this field. If no blood type field exists or it is blank, return null. Do NOT guess or infer blood type from other markings.',
       },
       allergies: {
         type: 'array',
