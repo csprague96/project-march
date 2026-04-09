@@ -10,33 +10,29 @@ const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a military medical data extrac
 3. "Shrapnel", "fragmentation", or any mechanism not written on the card must NOT appear in your output.
 4. Translate all extracted Ukrainian text to concise English in your output.
 
-## CARD LAYOUT — ФОРМА 100
+## CARD STRUCTURE — SEMANTIC FIELD LABELS
 
-The card has two halves (left and right). Extract fields from their labeled sections:
+Ukrainian military medical cards come in multiple layout variants (Форма 100, Первинна медична картка, DD-1380, etc.). Do NOT assume a fixed layout. Instead, locate fields by scanning for their Ukrainian labels anywhere on the card:
 
-LEFT HALF (top to bottom):
-- ТИП ЕВАКУАЦІЇ: evacuation type (top header)
-- ВІЙСЬКОВИЙ №: military ID number
-- ПРІЗВИЩЕ ТА ІМ'Я: patient surname and first name
-- ІНД.№: individual number
-- ДАТА/М-РІ: date, ЧАС: time
-- ПІДРОЗДІЛ: unit
-- АЛЕРГІЇ: allergies
-- Механізми: checkboxes for mechanism of injury
-- Інформація про травми: body diagram with injury markings
-- Джгут sections (4 limbs): Пр. руки, Л. руки, Пр. ноги, Л. ноги — each with ТИП and ЧАС
-- Vital signs table at bottom: Час, Пульс, Кров'яний тиск, Частота дихання, SpO2, Притомність (AVPU), Шкала болю (0-10)
+Patient/Admin labels:
+- ПРІЗВИЩЕ / ПІБ → patient name
+- ВІЙСЬКОВИЙ № → military ID
+- ІНД.№ → individual number
+- ДАТА, ЧАС → date and time
+- ПІДРОЗДІЛ → military unit (NOT the same as АЛЕРГІЇ)
+- АЛЕРГІЇ → allergies (NOT the same as ПІДРОЗДІЛ)
+- ТИП ЕВАКУАЦІЇ → evacuation type
 
-RIGHT HALF (top to bottom):
-- Терапія: therapy checkboxes (M-A-R-C-H protocol categories)
-- С: IV fluids/blood section (Назва, Об'єм, Шлях, Час)
-- ЛКІ: medications section with sub-rows:
-  - Аналгетики (analgesics): Назва, Доза, Шлях, Час
-  - Антибіотики (antibiotics): Назва, Доза, Шлях, Час
-  - Інші (other medications)
-- ІНШЕ: other treatments checkboxes
-- НОТАТКИ: free-text notes section — extract ONLY text written here
-- ПЕРШИЙ РЯТІВНИК: first responder name and individual number
+Clinical labels:
+- Механізми / Механізм → mechanism of injury (look for checkboxes with X or ✓ marks)
+- Інформація про травми → injury description and body diagram
+- Джгут → tourniquet (may appear in dedicated limb sections or inline)
+- Пульс, Кров'яний тиск, Частота дихання, SpO2, Притомність (AVPU), Шкала болю → vital signs
+- Терапія → MARCH therapy checkboxes
+- ЛКІ / Аналгетики / Антибіотики → medications
+- Рідина / Кров → IV fluids and blood products
+- НОТАТКИ → notes (transcribe ONLY text found near this label)
+- ПЕРШИЙ РЯТІВНИК → first responder (always near bottom of card, separate from patient data)
 
 ## SAFETY-CRITICAL FIELDS — SPECIAL RULES
 
@@ -51,18 +47,14 @@ These fields use a LOWER confidence threshold. If you can see the information bu
   - "Джгут: права рука 11:45" → applied: true, location: "right arm", time: "11:45"
   - "Дж. ліва нога 09:30" → applied: true, location: "left leg", time: "09:30"
   - "Джгут накладений год.___ хв.___" with blanks → applied: false (form field, not filled)
-- CARD STRUCTURE: The card has 4 dedicated tourniquet sections — one per limb:
-  - Джгут Пр. руки (right arm) — with ТИП (type) and ЧАС (time)
-  - Джгут Л. руки (left arm) — with ТИП (type) and ЧАС (time)
-  - Джгут Пр. ноги (right leg) — with ТИП (type) and ЧАС (time)
-  - Джгут Л. ноги (left leg) — with ТИП (type) and ЧАС (time)
-- Extract ALL tourniquets that have data filled in — check each limb section separately.
-- Return each in the "tourniquets" array. Do NOT collapse multiple tourniquets into one.
+- Some cards have dedicated tourniquet sections per limb (Пр. руки, Л. руки, Пр. ноги, Л. ноги), each with ТИП and ЧАС. Others list tourniquets inline.
+- Extract ALL tourniquets with data filled in. Return each in the "tourniquets" array.
 
 ### BLOOD TYPE
-- Written as: ГК, група крові, or the blood type directly (A+, B-, O+, AB+, etc.)
-- Cyrillic blood type notation: І(O), ІІ(A), ІІІ(B), ІV(AB)
-- Include Rh factor if written (+ or -)
+- ONLY extract if a dedicated blood type field (ГК, група крові) exists on the card AND has a value written in it.
+- Many card versions do NOT include a blood type field. If missing or blank, set to null.
+- Do NOT guess or infer blood type from other markings on the card.
+- If present: Cyrillic notation І(O), ІІ(A), ІІІ(B), ІV(AB). Include Rh factor if written (+ or -).
 
 ### NAMES
 - Transliterate all names (patient, first responder) from Cyrillic to Latin script (e.g. "ЛЕМЕХА ПЕТРО" → "LEMEKHA PETRO", "ОКРОШКО ГАЛИНА" → "OKROSHKO HALYNA"). Use standard Ukrainian transliteration.
@@ -98,7 +90,7 @@ Common mechanisms and their Ukrainian terms:
 
 ## EVACUATION TYPE
 
-Located at top of card as "ТИП ЕВАКУАЦІЇ:" — common values:
+Find the label "ТИП ЕВАКУАЦІЇ:" on the card. Common values:
 - автомобільна = automobile
 - швидка евакуація / швидка = rapid evacuation
 - гелікоптером = helicopter
@@ -119,7 +111,7 @@ Do NOT invent evacuation types. If unclear, set to null.
 - treatments: procedures and interventions (e.g., "tourniquet applied", "wound packed", "IV access", "chest seal", "splint", "oxygen", "blood transfusion", "санітарна обробка")
 - Antidotes (антидот) go in medications with the substance name if readable
 - Serums (ПСС, ПГС) go in medications
-- The ЛКІ section has sub-rows: Аналгетики, Антибіотики, Інші — extract each medication separately with its name, dose, route, and time.
+- Look for labels ЛКІ, Аналгетики, Антибіотики, Інші to find medication sections. Extract each medication separately with its name, dose, route, and time.
 
 COMMON UKRAINIAN MEDICATION BRAND NAMES — do NOT confuse similar-sounding drugs:
 - Кетанов / Кеторол = Ketorolac (an NSAID) — NOT Ketoprofen (a different drug)
@@ -176,46 +168,46 @@ const EXTRACTION_TOOL = {
     properties: {
       patient_name: {
         type: 'string',
-        description: 'From ПРІЗВИЩЕ ТА ІМЯ row on LEFT HALF. Patient full name transliterated from Cyrillic to Latin. NOT the first responder name from the bottom.',
+        description: 'Find label ПРІЗВИЩЕ or ПІБ. Read the handwritten name and transliterate Cyrillic to Latin. This is the PATIENT, not the first responder.',
       },
       military_id: {
         type: 'string',
-        description: 'From ВІЙСЬКОВИЙ № at TOP LEFT of card, near evacuation type.',
+        description: 'Find label ВІЙСЬКОВИЙ №. Read the number written next to it.',
       },
       individual_number: {
         type: 'string',
-        description: 'From ІНД.№ field on LEFT HALF, same row as patient name.',
+        description: 'Find label ІНД.№. Read the number written next to it.',
       },
       blood_type: {
         type: 'string',
         enum: ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'],
-        description: 'Blood type. Map Cyrillic: І=O, ІІ=A, ІІІ=B, ІV=AB.',
+        description: 'ONLY if a dedicated blood type field (ГК, група крові) exists on the card AND has a value written in it. Many card versions do not include this field. If no blood type field exists or it is blank, return null. Do NOT guess or infer blood type from other markings.',
       },
       allergies: {
         type: 'array',
         items: { type: 'string' },
-        description: 'From АЛЕРГІЇ field on LEFT HALF. If "немає"/"нема"/"НЕМА" is written, return empty array []. Do NOT return "NONE" as an allergy string.',
+        description: 'Find label АЛЕРГІЇ. If "немає"/"нема"/"НЕМА" is written, return []. Do NOT return "NONE" as a string. This field is separate from ПІДРОЗДІЛ.',
       },
       unit: {
         type: 'string',
-        description: 'From ПІДРОЗДІЛ row on LEFT HALF, below ДАТА/ЧАС. Military unit designation in English (e.g., "101st Brigade", "25th Mechanized"). This is NOT the allergies field.',
+        description: 'Find label ПІДРОЗДІЛ. Read the military unit written next to it, translate to English (e.g., "101st Brigade"). This field is separate from АЛЕРГІЇ.',
       },
       date_time: {
         type: 'string',
-        description: 'From ДАТА-М/РІ and ЧАС fields on LEFT HALF, below patient name. Read the complete date digits carefully (e.g., "15-3-2026 18:10").',
+        description: 'Find labels ДАТА and ЧАС. Read the complete date and time digits carefully (e.g., "15-3-2026 18:10").',
       },
       evacuation_type: {
         type: 'string',
-        description: 'From ТИП ЕВАКУАЦІЇ at TOP of card. Translate: автомобільна=automobile, швидка=rapid evacuation, гелікоптером=helicopter. Null if unclear.',
+        description: 'Find label ТИП ЕВАКУАЦІЇ. Translate: автомобільна=automobile, швидка=rapid evacuation, гелікоптером=helicopter. Null if unclear or absent.',
       },
       mechanism_of_injury: {
         type: 'array',
         items: { type: 'string' },
-        description: 'From Механізми checkbox section on LEFT HALF. Include ONLY mechanisms with a check mark (X or ✓). Translate to English.',
+        description: 'Find the Механізми checkbox section. Include ONLY mechanisms with a visible check mark (X or ✓). Translate to English.',
       },
       injuries: {
         type: 'string',
-        description: 'From Інформація про травми section and body diagram markings. Describe injuries IN ENGLISH. Do NOT include tourniquet locations here.',
+        description: 'Find injury description text and body diagram markings. Describe injuries IN ENGLISH. Do NOT include tourniquet locations.',
       },
       injury_locations: {
         type: 'array',
@@ -224,19 +216,19 @@ const EXTRACTION_TOOL = {
       },
       vital_signs: {
         type: 'object',
-        description: 'All values from the VITAL SIGNS TABLE at BOTTOM LEFT of card. Each row has a label and a handwritten value.',
+        description: 'Find the vitals section by scanning for labels: Пульс, Кров\'яний тиск, Частота дихання, SpO2, AVPU, Шкала болю. Read the handwritten value next to each label.',
         properties: {
-          time: { type: 'string', description: 'From Час row (first row of vitals table).' },
-          pulse: { type: 'string', description: 'From Пульс (частота) row. Numeric bpm value.' },
-          blood_pressure: { type: 'string', description: 'From Кров\'яний тиск row. Format: systolic/diastolic (e.g., "140/90"). Read each digit carefully.' },
-          respiratory_rate: { type: 'string', description: 'From Частота дихання row. Numeric breaths/min.' },
-          spo2: { type: 'string', description: 'From Пульс ОкС/О2 насич. row. Percentage value.' },
+          time: { type: 'string', description: 'Find label Час or Статус. Time vitals were recorded.' },
+          pulse: { type: 'string', description: 'Find label Пульс or ЧСС. Numeric bpm value.' },
+          blood_pressure: { type: 'string', description: 'Find label Кров\'яний тиск or АТ. Format: systolic/diastolic. Read each digit carefully.' },
+          respiratory_rate: { type: 'string', description: 'Find label Частота дихання or ЧД. Numeric breaths/min.' },
+          spo2: { type: 'string', description: 'Find label SpO2 or Пульс ОкС. Percentage value.' },
           avpu: {
             type: 'string',
             enum: ['A', 'V', 'P', 'U'],
-            description: 'From Притомність (AVPU) row. Exactly ONE letter.',
+            description: 'Find label Притомність or AVPU. Exactly ONE letter: A/V/P/U.',
           },
-          pain_scale: { type: 'string', description: 'From Шкала болю (0-10) row. The LAST row in the vitals table.' },
+          pain_scale: { type: 'string', description: 'Find label Шкала болю. Pain score (0-10).' },
         },
       },
       treatments: {
@@ -262,7 +254,7 @@ const EXTRACTION_TOOL = {
           },
           required: ['name'],
         },
-        description: 'Detailed medications from ЛКІ section. Extract EACH sub-row (Аналгетики, Антибіотики, Інші) separately.',
+        description: 'Find labels ЛКІ, Аналгетики, Антибіотики, Інші. Extract EACH medication row separately.',
       },
       fluids: {
         type: 'array',
@@ -277,7 +269,7 @@ const EXTRACTION_TOOL = {
           },
           required: ['name'],
         },
-        description: 'IV fluids and blood products from the С section.',
+        description: 'Find labels Рідина, Кров, or С (fluids/blood). Extract fluid and blood product entries.',
       },
       tourniquet: {
         type: 'object',
@@ -300,7 +292,7 @@ const EXTRACTION_TOOL = {
           },
           required: ['location'],
         },
-        description: 'ALL tourniquets. Check each of the 4 limb sections (Пр. руки, Л. руки, Пр. ноги, Л. ноги).',
+        description: 'ALL tourniquets found on the card. Scan for Джгут labels near each limb section.',
       },
       march_therapies: {
         type: 'object',
@@ -324,14 +316,14 @@ const EXTRACTION_TOOL = {
       first_responder: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'From ПРІЗВИЩЕ ІМ\'Я line at VERY BOTTOM RIGHT of card, after ПЕРШИЙ РЯТІВНИК label. Transliterate to Latin. This is the MEDIC, not the patient.' },
-          id: { type: 'string', description: 'From ІНД.№ at VERY BOTTOM RIGHT, same line as first responder name. This number MUST be different from the patient individual_number.' },
+          name: { type: 'string', description: 'Find label ПЕРШИЙ РЯТІВНИК, then read the name near it. Transliterate to Latin. This is the MEDIC who filled out the card, NOT the patient.' },
+          id: { type: 'string', description: 'Find ІНД.№ near ПЕРШИЙ РЯТІВНИК label. This ID MUST be different from the patient individual_number.' },
         },
-        description: 'From ПЕРШИЙ РЯТІВНИК section at VERY BOTTOM of RIGHT HALF. The name and ID here belong to the medic who filled out the card. They MUST differ from patient_name and individual_number.',
+        description: 'Find label ПЕРШИЙ РЯТІВНИК on the card. The name and ID here are the medic, NOT the patient. Values MUST differ from patient_name and individual_number.',
       },
       notes: {
         type: 'string',
-        description: 'From НОТАТКИ box on RIGHT HALF of card, above ПЕРШИЙ РЯТІВНИК. Transcribe ONLY the handwritten text in that box, then translate to English. Do NOT summarize, paraphrase, or generate clinical observations. If the box is empty or fully illegible, return null.',
+        description: 'Find label НОТАТКИ on the card. Transcribe ONLY the handwritten text near that label, then translate to English. Do NOT summarize, paraphrase, or generate clinical observations. Null if empty or illegible.',
       },
       confidence: {
         type: 'number',

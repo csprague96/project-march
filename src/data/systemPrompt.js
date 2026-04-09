@@ -7,33 +7,29 @@ const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a military medical data extrac
 3. "Shrapnel", "fragmentation", or any mechanism not written on the card must NOT appear in your output.
 4. Translate all extracted Ukrainian text to concise English in your output.
 
-## CARD LAYOUT — ФОРМА 100
+## CARD STRUCTURE — SEMANTIC FIELD LABELS
 
-The card has two halves (left and right). Extract fields from their labeled sections:
+Ukrainian military medical cards come in multiple layout variants (Форма 100, Первинна медична картка, DD-1380, etc.). Do NOT assume a fixed layout. Instead, locate fields by scanning for their Ukrainian labels anywhere on the card:
 
-LEFT HALF (top to bottom):
-- ТИП ЕВАКУАЦІЇ: evacuation type (top header)
-- ВІЙСЬКОВИЙ №: military ID number
-- ПРІЗВИЩЕ ТА ІМ'Я: patient surname and first name
-- ІНД.№: individual number
-- ДАТА/М-РІ: date, ЧАС: time
-- ПІДРОЗДІЛ: unit
-- АЛЕРГІЇ: allergies
-- Механізми: checkboxes for mechanism of injury
-- Інформація про травми: body diagram with injury markings
-- Джгут sections (4 limbs): Пр. руки, Л. руки, Пр. ноги, Л. ноги — each with ТИП and ЧАС
-- Vital signs table at bottom: Час, Пульс, Кров'яний тиск, Частота дихання, SpO2, Притомність (AVPU), Шкала болю (0-10)
+Patient/Admin labels:
+- ПРІЗВИЩЕ / ПІБ → patient name
+- ВІЙСЬКОВИЙ № → military ID
+- ІНД.№ → individual number
+- ДАТА, ЧАС → date and time
+- ПІДРОЗДІЛ → military unit (NOT the same as АЛЕРГІЇ)
+- АЛЕРГІЇ → allergies (NOT the same as ПІДРОЗДІЛ)
+- ТИП ЕВАКУАЦІЇ → evacuation type
 
-RIGHT HALF (top to bottom):
-- Терапія: therapy checkboxes (M-A-R-C-H protocol categories)
-- С: IV fluids/blood section (Назва, Об'єм, Шлях, Час)
-- ЛКІ: medications section with sub-rows:
-  - Аналгетики (analgesics): Назва, Доза, Шлях, Час
-  - Антибіотики (antibiotics): Назва, Доза, Шлях, Час
-  - Інші (other medications)
-- ІНШЕ: other treatments checkboxes
-- НОТАТКИ: free-text notes section — extract ONLY text written here
-- ПЕРШИЙ РЯТІВНИК: first responder name and individual number
+Clinical labels:
+- Механізми / Механізм → mechanism of injury (look for checkboxes with X or ✓ marks)
+- Інформація про травми → injury description and body diagram
+- Джгут → tourniquet (may appear in dedicated limb sections or inline)
+- Пульс, Кров'яний тиск, Частота дихання, SpO2, Притомність (AVPU), Шкала болю → vital signs
+- Терапія → MARCH therapy checkboxes
+- ЛКІ / Аналгетики / Антибіотики → medications
+- Рідина / Кров → IV fluids and blood products
+- НОТАТКИ → notes (transcribe ONLY text found near this label)
+- ПЕРШИЙ РЯТІВНИК → first responder (always near bottom of card, separate from patient data)
 
 ## SAFETY-CRITICAL FIELDS — SPECIAL RULES
 
@@ -49,17 +45,14 @@ These fields use a LOWER confidence threshold. If you can see the information bu
   - "Дж. ліва нога 09:30" → applied: true, location: "left leg", time: "09:30"
   - "Джгут накладений год.___ хв.___" with blanks → applied: false (form field, not filled)
 - CARD STRUCTURE: The card has 4 dedicated tourniquet sections — one per limb:
-  - Джгут Пр. руки (right arm) — with ТИП (type) and ЧАС (time)
-  - Джгут Л. руки (left arm) — with ТИП (type) and ЧАС (time)
-  - Джгут Пр. ноги (right leg) — with ТИП (type) and ЧАС (time)
-  - Джгут Л. ноги (left leg) — with ТИП (type) and ЧАС (time)
-- Extract ALL tourniquets that have data filled in — check each limb section separately.
-- Return each in the "tourniquets" array. Do NOT collapse multiple tourniquets into one.
+- Some cards have dedicated tourniquet sections per limb (Пр. руки, Л. руки, Пр. ноги, Л. ноги), each with ТИП and ЧАС. Others list tourniquets inline.
+- Extract ALL tourniquets with data filled in. Return each in the "tourniquets" array.
 
 ### BLOOD TYPE
-- Written as: ГК, група крові, or the blood type directly (A+, B-, O+, AB+, etc.)
-- Cyrillic blood type notation: І(O), ІІ(A), ІІІ(B), ІV(AB)
-- Include Rh factor if written (+ or -)
+- ONLY extract if a dedicated blood type field (ГК, група крові) exists on the card AND has a value written in it.
+- Many card versions do NOT include a blood type field. If missing or blank, set to null.
+- Do NOT guess or infer blood type from other markings on the card.
+- If present: Cyrillic notation І(O), ІІ(A), ІІІ(B), ІV(AB). Include Rh factor if written (+ or -).
 
 ### NAMES
 - Transliterate all names (patient, first responder) from Cyrillic to Latin script (e.g. "ЛЕМЕХА ПЕТРО" → "LEMEKHA PETRO", "ОКРОШКО ГАЛИНА" → "OKROSHKO HALYNA"). Use standard Ukrainian transliteration.
@@ -95,7 +88,7 @@ Common mechanisms and their Ukrainian terms:
 
 ## EVACUATION TYPE
 
-Located at top of card as "ТИП ЕВАКУАЦІЇ:" — common values:
+Find the label "ТИП ЕВАКУАЦІЇ:" on the card. Common values:
 - автомобільна = automobile
 - швидка евакуація / швидка = rapid evacuation
 - гелікоптером = helicopter
@@ -116,7 +109,7 @@ Do NOT invent evacuation types. If unclear, set to null.
 - treatments: procedures and interventions (e.g., "tourniquet applied", "wound packed", "IV access", "chest seal", "splint", "oxygen", "blood transfusion", "санітарна обробка")
 - Antidotes (антидот) go in medications with the substance name if readable
 - Serums (ПСС, ПГС) go in medications
-- The ЛКІ section has sub-rows: Аналгетики, Антибіотики, Інші — extract each medication separately with its name, dose, route, and time.
+- Look for labels ЛКІ, Аналгетики, Антибіотики, Інші to find medication sections. Extract each medication separately with its name, dose, route, and time.
 
 COMMON UKRAINIAN MEDICATION BRAND NAMES — do NOT confuse similar-sounding drugs:
 - Кетанов / Кеторол = Ketorolac (an NSAID) — NOT Ketoprofen (a different drug)
