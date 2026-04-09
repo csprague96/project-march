@@ -101,12 +101,24 @@ Find the label "ТИП ЕВАКУАЦІЇ:" on the card. Common values:
 - санітарний транспорт = medical transport
 Do NOT invent evacuation types. If unclear, set to null.
 
-## NOTES FIELD — STRICT EXTRACTION
+## NOTES FIELD — TRANSCRIPTION ONLY
 
-- The notes field MUST contain ONLY text from the НОТАТКИ section of the card.
-- Do NOT generate summaries, clinical observations, or inferred medical assessments.
-- Do NOT mention treatments, procedures, or signs not explicitly written in НОТАТКИ.
-- If НОТАТКИ is empty or illegible, set notes to null.
+This is a TRANSCRIPTION task, not a comprehension task. You are a handwriting-to-text converter for the НОТАТКИ section.
+
+RULES:
+1. Find the label НОТАТКИ on the card.
+2. TRANSCRIBE the exact handwritten ink marks next to that label, word by word.
+3. Translate the transcribed Ukrainian text to English.
+4. If some words are unclear, transcribe what you CAN read and mark gaps with [...].
+5. Only return null if the НОТАТКИ section is completely empty (no ink) or 100% illegible.
+
+DO NOT:
+- Generate clinical summaries or narratives
+- Invent phrases like "conscious, stable condition", "no signs of shock", "bleeding stopped" unless those EXACT words are handwritten in НОТАТКИ
+- Combine information from other parts of the card into notes
+- Write anything that sounds like a professional medical assessment
+
+The notes field should read like a rough translation of messy handwriting, not a polished clinical report.
 
 ## MEDICATIONS vs TREATMENTS — DISTINCTION
 
