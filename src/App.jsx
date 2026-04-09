@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import CameraScreen from './screens/CameraScreen'
 import HistoryScreen from './screens/HistoryScreen'
+import OnboardingModal, { ONBOARDING_STORAGE_KEY } from './components/OnboardingModal'
 import ResultScreen from './screens/ResultScreen'
 import { useTranslation } from './contexts/LanguageContext'
 import { extractWithClaude } from './services/claudeOCR'
@@ -48,6 +49,7 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_STORAGE_KEY))
   const queueIsRunningRef = useRef(false)
 
   const savedRecordIds = useMemo(() => new Set(records.map((record) => record.id)), [records])
@@ -249,8 +251,9 @@ function App() {
       }
     : null
 
+  let screen
   if (view === 'history') {
-    return (
+    screen = (
       <HistoryScreen
         isSyncing={isSyncing}
         onBack={() => setView('camera')}
@@ -258,10 +261,8 @@ function App() {
         records={records}
       />
     )
-  }
-
-  if (view === 'result' && resultRecord) {
-    return (
+  } else if (view === 'result' && resultRecord) {
+    screen = (
       <ResultScreen
         backLabel={resultBackTarget === 'history' ? t('backToHistory') : t('backToCamera')}
         isSaving={isSaving}
@@ -270,19 +271,26 @@ function App() {
         record={resultRecord}
       />
     )
+  } else {
+    screen = (
+      <CameraScreen
+        accessCode={accessCode}
+        errorMessage={errorMessage}
+        isOnline={isOnline}
+        onCapture={handleCapture}
+        onOpenHistory={() => setView('history')}
+        onOpenInbox={() => setView('history')}
+        onSaveAccessCode={handleSaveAccessCode}
+        pendingCount={pendingCount}
+      />
+    )
   }
 
   return (
-    <CameraScreen
-      accessCode={accessCode}
-      errorMessage={errorMessage}
-      isOnline={isOnline}
-      onCapture={handleCapture}
-      onOpenHistory={() => setView('history')}
-      onOpenInbox={() => setView('history')}
-      onSaveAccessCode={handleSaveAccessCode}
-      pendingCount={pendingCount}
-    />
+    <>
+      {screen}
+      {showOnboarding && <OnboardingModal onDismiss={() => setShowOnboarding(false)} />}
+    </>
   )
 }
 

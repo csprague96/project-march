@@ -119,6 +119,15 @@ const translations = {
 
     // Language toggle aria label
     toggleLanguage: 'Toggle language',
+
+    // Onboarding modal
+    onboardingTitle: 'Welcome to M.A.R.C.H',
+    onboardingAbout:
+      'This app uses Claude AI to read casualty triage cards. When offline, it falls back to on-device OCR automatically.',
+    onboardingInstallTitle: 'Add to your home screen',
+    onboardingInstallIOS: 'Tap the Share button (↑) in Safari, then "Add to Home Screen".',
+    onboardingInstallAndroid: 'Install App',
+    onboardingDismiss: 'Got it',
   },
 
   uk: {
@@ -239,6 +248,15 @@ const translations = {
 
     // Language toggle aria label
     toggleLanguage: 'Змінити мову',
+
+    // Onboarding modal
+    onboardingTitle: 'Ласкаво просимо до M.A.R.C.H',
+    onboardingAbout:
+      'Цей застосунок використовує Claude AI для читання карток сортування. В офлайн-режимі автоматично перемикається на розпізнавання на пристрої.',
+    onboardingInstallTitle: 'Додайте на головний екран',
+    onboardingInstallIOS: 'Натисніть кнопку «Поділитися» (↑) у Safari, потім «На головний екран».',
+    onboardingInstallAndroid: 'Встановити застосунок',
+    onboardingDismiss: 'Зрозуміло',
   },
 }
 

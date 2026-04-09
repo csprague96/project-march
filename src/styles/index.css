@@ -15,6 +15,8 @@
   --status-offline: #f59e0b;
   --status-error: #dc2626;
   --blood-type-bg: #7f1d1d;
+  --ukraine-blue: #0057B7;
+  --ukraine-yellow: #FFDD00;
   font-family: Inter, system-ui, sans-serif;
   color: var(--text-primary);
   background: var(--bg-primary);
@@ -38,7 +40,7 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(circle at top, rgba(220, 38, 38, 0.12), transparent 30%),
+    radial-gradient(circle at top, rgba(0, 87, 183, 0.13), transparent 30%),
     var(--bg-primary);
 }
 
@@ -46,6 +48,21 @@ button,
 input,
 textarea {
   font: inherit;
+}
+
+.ukraine-flag {
+  display: inline-block;
+  width: 28px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, #0057B7 50%, #FFDD00 50%);
+  flex-shrink: 0;
+}
+
+.ukraine-flag-sm {
+  width: 18px;
+  height: 12px;
+  border-radius: 2px;
 }
 
 .font-medical {

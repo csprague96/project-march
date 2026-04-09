@@ -221,6 +221,11 @@ function CameraScreen({
         </div>
 
         <footer className="relative flex flex-col items-center gap-4 pb-4">
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            <span className="ukraine-flag ukraine-flag-sm" />
+            <span className="text-[11px] font-medium text-white/40">Слава Україні!</span>
+          </div>
+
           <CaptureButton onClick={handleCapture} />
 
           {/* Inbox button: bottom-right, shows count of captures awaiting review */}
