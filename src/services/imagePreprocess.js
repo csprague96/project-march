@@ -61,6 +61,12 @@ export async function preprocessImage(
     bitmap.close()
   }
 
+  // Capture the resized-but-unaltered image for Claude's vision model.
+  // Claude reads handwriting far better from the original photograph.
+  const originalBlob = await canvasToBlob(canvas)
+  const originalDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+
+  // Now apply binary thresholding for Tesseract (offline OCR).
   const imageData = context.getImageData(0, 0, width, height)
   const pixels = imageData.data
 
@@ -80,9 +86,16 @@ export async function preprocessImage(
   const processedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
   return {
-    blob: processedBlob,
-    dataUrl: processedDataUrl,
-    base64: processedDataUrl.split(',')[1],
+    original: {
+      blob: originalBlob,
+      dataUrl: originalDataUrl,
+      base64: originalDataUrl.split(',')[1],
+    },
+    processed: {
+      blob: processedBlob,
+      dataUrl: processedDataUrl,
+      base64: processedDataUrl.split(',')[1],
+    },
     width,
     height,
   }

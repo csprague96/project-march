@@ -1,4 +1,4 @@
-import { Activity, Droplets, ShieldAlert, ShieldPlus, Syringe } from 'lucide-react'
+import { Activity, Droplets, HeartPulse, ShieldAlert, ShieldPlus, Syringe, User } from 'lucide-react'
 
 import AllergyBadges from './AllergyBadges'
 import ConfidenceIndicator from './ConfidenceIndicator'
@@ -52,6 +52,12 @@ function TriageCard({ record }) {
               <div className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
                 {record.patient_name ?? t('unknownPatient')}
               </div>
+              {(record.military_id || record.individual_number) ? (
+                <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--text-secondary)]">
+                  {record.military_id ? <span>{t('militaryId')}: {record.military_id}</span> : null}
+                  {record.individual_number ? <span>{t('individualNumber')}: {record.individual_number}</span> : null}
+                </div>
+              ) : null}
             </div>
             <div className="text-right">
               <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)]">{t('timestamp')}</div>
@@ -94,6 +100,15 @@ function TriageCard({ record }) {
 
         <Section icon={ShieldPlus} title={t('injuries')}>
           <p className="text-sm leading-6 text-[var(--text-primary)]">{record.injuries ?? t('noInjuryDetail')}</p>
+          {record.injury_locations?.length ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {record.injury_locations.map((loc) => (
+                <span key={loc} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--text-primary)]">
+                  {loc}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </Section>
 
         <Section icon={Activity} title={t('vitalSigns')}>
@@ -105,18 +120,88 @@ function TriageCard({ record }) {
           ) : null}
         </Section>
 
+        {record.march_therapies ? (
+          <Section icon={HeartPulse} title={t('marchTherapies')}>
+            <div className="space-y-2">
+              {[
+                ['massive_hemorrhage', t('massiveHemorrhage')],
+                ['airway', t('airway')],
+                ['respiration', t('respiration')],
+                ['circulation', t('circulation')],
+                ['secondary', t('secondary')],
+              ].map(([key, label]) => {
+                const items = record.march_therapies[key]
+                if (!items?.length) return null
+                return (
+                  <div key={key} className="rounded-xl border border-white/5 bg-white/4 px-3 py-2">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{label}</div>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {items.map((item) => (
+                        <span key={item} className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-[var(--text-primary)]">{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Section>
+        ) : null}
+
         <div className="grid gap-4 lg:grid-cols-2">
           <Section icon={Syringe} title={t('treatments')}>
             <ListBlock emptyLabel={t('noTreatments')} items={record.treatments} />
           </Section>
 
-          <Section icon={Syringe} title={t('medications')}>
-            <ListBlock emptyLabel={t('noMedications')} items={record.medications} />
+          <Section icon={Syringe} title={t('medicationsDetailed')}>
+            {record.medications_detailed?.length ? (
+              <div className="space-y-2">
+                {record.medications_detailed.map((med, i) => (
+                  <div key={i} className="rounded-xl border border-white/5 bg-white/4 px-3 py-2 text-sm text-[var(--text-primary)]">
+                    <div className="font-semibold">{med.name}</div>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--text-secondary)]">
+                      {med.dose ? <span>{t('dose')}: {med.dose}</span> : null}
+                      {med.route ? <span>{t('route')}: {med.route}</span> : null}
+                      {med.time ? <span>{t('time')}: {med.time}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ListBlock emptyLabel={t('noMedications')} items={record.medications} />
+            )}
           </Section>
         </div>
 
+        {record.fluids?.length ? (
+          <Section icon={Droplets} title={t('ivFluids')}>
+            <div className="space-y-2">
+              {record.fluids.map((fluid, i) => (
+                <div key={i} className="rounded-xl border border-white/5 bg-white/4 px-3 py-2 text-sm text-[var(--text-primary)]">
+                  <div className="font-semibold">{fluid.name}</div>
+                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--text-secondary)]">
+                    {fluid.volume ? <span>{t('volume')}: {fluid.volume}</span> : null}
+                    {fluid.route ? <span>{t('route')}: {fluid.route}</span> : null}
+                    {fluid.time ? <span>{t('time')}: {fluid.time}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+        ) : null}
+
         <Section icon={ShieldPlus} title={t('tourniquet')}>
-          {record.tourniquet?.applied ? (
+          {record.tourniquets?.length ? (
+            <div className="space-y-2">
+              {record.tourniquets.map((tq, i) => (
+                <div key={i} className="rounded-2xl border border-[var(--triage-immediate)]/30 bg-[var(--triage-immediate)]/10 p-4 text-sm text-[var(--text-primary)]">
+                  <div className="font-semibold text-white">{t('tourniquetApplied')}</div>
+                  <div>{t('location')}: {tq.location ?? t('notCaptured')}</div>
+                  {tq.type ? <div>{t('tourniquetType')}: {tq.type}</div> : null}
+                  <div>{t('time')}: {tq.time ?? t('notCaptured')}</div>
+                </div>
+              ))}
+            </div>
+          ) : record.tourniquet?.applied ? (
             <div className="space-y-2 rounded-2xl border border-[var(--triage-immediate)]/30 bg-[var(--triage-immediate)]/10 p-4 text-sm text-[var(--text-primary)]">
               <div className="font-semibold text-white">{t('tourniquetApplied')}</div>
               <div>{t('location')}: {record.tourniquet.location ?? t('notCaptured')}</div>
@@ -139,7 +224,19 @@ function TriageCard({ record }) {
             <OfflineBanner source={record.source} wasUpgraded={record.wasUpgraded} />
             <div className="rounded-2xl border border-[var(--border)] bg-black/20 p-4 text-sm text-[var(--text-secondary)]">
               <div>{t('unit')}: {record.unit ?? t('notCaptured')}</div>
+              {record.evacuation_type ? (
+                <div className="mt-2">{t('evacuationType')}: {record.evacuation_type}</div>
+              ) : null}
               <div className="mt-2">{t('evacuationPriority')}: {record.evacuation_priority ?? t('notCaptured')}</div>
+              {record.first_responder?.name ? (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  <div className="text-xs uppercase tracking-wider">{t('firstResponder')}</div>
+                  <div className="mt-1 text-[var(--text-primary)]">{record.first_responder.name}</div>
+                  {record.first_responder.id ? (
+                    <div className="text-xs">{t('individualNumber')}: {record.first_responder.id}</div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

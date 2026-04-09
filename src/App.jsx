@@ -147,8 +147,8 @@ function App() {
         id: draftId,
         status: 'pending',
         source: 'offline',
-        imageDataUrl: capture.dataUrl,
-        processedImageDataUrl: processedImage.dataUrl,
+        imageDataUrl: processedImage.original.dataUrl,
+        processedImageDataUrl: processedImage.processed.dataUrl,
       })
 
       await saveTriageRecord(draftRecord)
@@ -191,16 +191,16 @@ function App() {
 
       // 4. Fire OCR — no await. Camera stays live immediately.
       if (isOnline && accessCode) {
-        extractWithClaude({ accessCode, base64ImageData: processedImage.base64 })
+        extractWithClaude({ accessCode, base64ImageData: processedImage.original.base64 })
           .then((result) => handleOcrDone(result, null, 'online'))
           .catch((onlineError) => {
             console.warn('Claude failed, falling back to Tesseract:', onlineError)
-            return extractWithTesseract({ blob: processedImage.blob, id: draftId })
+            return extractWithTesseract({ blob: processedImage.processed.blob, id: draftId })
               .then(({ result, rawText }) => handleOcrDone(result, rawText, 'offline'))
           })
           .catch(handleOcrError)
       } else {
-        extractWithTesseract({ blob: processedImage.blob, id: draftId })
+        extractWithTesseract({ blob: processedImage.processed.blob, id: draftId })
           .then(({ result, rawText }) => handleOcrDone(result, rawText, 'offline'))
           .catch(handleOcrError)
       }
