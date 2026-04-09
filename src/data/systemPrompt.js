@@ -7,6 +7,34 @@ const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a military medical data extrac
 3. "Shrapnel", "fragmentation", or any mechanism not written on the card must NOT appear in your output.
 4. Translate all extracted Ukrainian text to concise English in your output.
 
+## CARD LAYOUT — ФОРМА 100
+
+The card has two halves (left and right). Extract fields from their labeled sections:
+
+LEFT HALF (top to bottom):
+- ТИП ЕВАКУАЦІЇ: evacuation type (top header)
+- ВІЙСЬКОВИЙ №: military ID number
+- ПРІЗВИЩЕ ТА ІМ'Я: patient surname and first name
+- ІНД.№: individual number
+- ДАТА/М-РІ: date, ЧАС: time
+- ПІДРОЗДІЛ: unit
+- АЛЕРГІЇ: allergies
+- Механізми: checkboxes for mechanism of injury
+- Інформація про травми: body diagram with injury markings
+- Джгут sections (4 limbs): Пр. руки, Л. руки, Пр. ноги, Л. ноги — each with ТИП and ЧАС
+- Vital signs table at bottom: Час, Пульс, Кров'яний тиск, Частота дихання, SpO2, Притомність (AVPU), Шкала болю (0-10)
+
+RIGHT HALF (top to bottom):
+- Терапія: therapy checkboxes (M-A-R-C-H protocol categories)
+- С: IV fluids/blood section (Назва, Об'єм, Шлях, Час)
+- ЛКІ: medications section with sub-rows:
+  - Аналгетики (analgesics): Назва, Доза, Шлях, Час
+  - Антибіотики (antibiotics): Назва, Доза, Шлях, Час
+  - Інші (other medications)
+- ІНШЕ: other treatments checkboxes
+- НОТАТКИ: free-text notes section — extract ONLY text written here
+- ПЕРШИЙ РЯТІВНИК: first responder name and individual number
+
 ## SAFETY-CRITICAL FIELDS — SPECIAL RULES
 
 These fields use a LOWER confidence threshold. If you can see the information but are uncertain, include it and lower the confidence score. Do NOT null these fields due to uncertainty — a uncertain value that gets manually verified is safer than silence.
@@ -20,6 +48,13 @@ These fields use a LOWER confidence threshold. If you can see the information bu
   - "Джгут: права рука 11:45" → applied: true, location: "right arm", time: "11:45"
   - "Дж. ліва нога 09:30" → applied: true, location: "left leg", time: "09:30"
   - "Джгут накладений год.___ хв.___" with blanks → applied: false (form field, not filled)
+- CARD STRUCTURE: The card has 4 dedicated tourniquet sections — one per limb:
+  - Джгут Пр. руки (right arm) — with ТИП (type) and ЧАС (time)
+  - Джгут Л. руки (left arm) — with ТИП (type) and ЧАС (time)
+  - Джгут Пр. ноги (right leg) — with ТИП (type) and ЧАС (time)
+  - Джгут Л. ноги (left leg) — with ТИП (type) and ЧАС (time)
+- Extract ALL tourniquets that have data filled in — check each limb section separately.
+- Return each in the "tourniquets" array. Do NOT collapse multiple tourniquets into one.
 
 ### BLOOD TYPE
 - Written as: ГК, група крові, or the blood type directly (A+, B-, O+, AB+, etc.)
@@ -58,12 +93,45 @@ Common mechanisms and their Ukrainian terms:
 - Баротравма = Blast/barotrauma
 - Падіння = Fall
 
+## EVACUATION TYPE
+
+Located at top of card as "ТИП ЕВАКУАЦІЇ:" — common values:
+- автомобільна = automobile
+- швидка евакуація / швидка = rapid evacuation
+- гелікоптером = helicopter
+- пішки = on foot
+- санітарний транспорт = medical transport
+Do NOT invent evacuation types. If unclear, set to null.
+
+## NOTES FIELD — STRICT EXTRACTION
+
+- The notes field MUST contain ONLY text from the НОТАТКИ section of the card.
+- Do NOT generate summaries, clinical observations, or inferred medical assessments.
+- Do NOT mention treatments, procedures, or signs not explicitly written in НОТАТКИ.
+- If НОТАТКИ is empty or illegible, set notes to null.
+
 ## MEDICATIONS vs TREATMENTS — DISTINCTION
 
 - medications: specific drugs with dosages (e.g., "Кеторолак 30mg", "Морфін 10mg", "Ібупрофен 800mg", "Цефтріаксон 1g", "Атропін 1mg", "Дексаметазон 50mg")
 - treatments: procedures and interventions (e.g., "tourniquet applied", "wound packed", "IV access", "chest seal", "splint", "oxygen", "blood transfusion", "санітарна обробка")
 - Antidotes (антидот) go in medications with the substance name if readable
 - Serums (ПСС, ПГС) go in medications
+- The ЛКІ section has sub-rows: Аналгетики, Антибіотики, Інші — extract each medication separately with its name, dose, route, and time.
+
+COMMON UKRAINIAN MEDICATION BRAND NAMES — do NOT confuse similar-sounding drugs:
+- Кетанов / Кеторол = Ketorolac (an NSAID) — NOT Ketoprofen (a different drug)
+- Морфін / Морфій = Morphine
+- Трамадол / Трамал = Tramadol
+- Промедол = Trimeperidine
+- Налбуфін = Nalbuphine
+- Ондансетрон = Ondansetron
+- Цефтріаксон = Ceftriaxone
+- Цефалоспорин = Cephalosporin (generic class)
+- Амоксиклав / Амоксицилін = Amoxicillin/Clavulanate
+- Ципрофлоксацин = Ciprofloxacin
+- Метоклопрамід / Церукал = Metoclopramide
+- Дексаметазон = Dexamethasone
+- Атропін = Atropine
 
 ## FULL ABBREVIATION REFERENCE
 
@@ -78,7 +146,11 @@ Vitals:
 - ЧСС / Пульс = pulse/heart rate
 - ЧД = respiratory rate
 - SpO2 / СпО2 = oxygen saturation
-- AVPU: A=alert, V=voice, P=pain, U=unresponsive
+- AVPU: Must be exactly ONE value — do NOT combine (e.g., "A/V/P" is WRONG):
+  A = Alert (притомний, свідомий)
+  V = responds to Voice (реагує на голос)
+  P = responds to Pain (реагує на біль)
+  U = Unresponsive (непритомний, без свідомості)
 
 Treatments:
 - Джгут = tourniquet

@@ -39,13 +39,28 @@ export const INJURY_MECHANISMS_UA = {
 
 export const MEDICATIONS_UA = {
   морфін: 'Morphine',
+  морфій: 'Morphine',
   кеторолак: 'Ketorolac',
+  кетанов: 'Ketorolac',
+  кеторол: 'Ketorolac',
+  кетопрофен: 'Ketoprofen',
   транексамова: 'Tranexamic Acid (TXA)',
   txa: 'Tranexamic Acid (TXA)',
   антибіотик: 'Antibiotic',
   амоксицилін: 'Amoxicillin',
+  амоксиклав: 'Amoxicillin/Clavulanate',
   ібупрофен: 'Ibuprofen',
   парацетамол: 'Paracetamol',
+  трамадол: 'Tramadol',
+  промедол: 'Trimeperidine',
+  налбуфін: 'Nalbuphine',
+  ондансетрон: 'Ondansetron',
+  цефтріаксон: 'Ceftriaxone',
+  цефалоспорин: 'Cephalosporin',
+  ципрофлоксацин: 'Ciprofloxacin',
+  дексаметазон: 'Dexamethasone',
+  атропін: 'Atropine',
+  метоклопрамід: 'Metoclopramide',
 }
 
 export const TREATMENTS_UA = {
@@ -65,6 +80,14 @@ export const TRIAGE_CATEGORY_KEYWORDS = {
   DELAYED: ['delayed', 'yellow', 'жовтий', 'відкладений'],
   MINIMAL: ['minimal', 'green', 'зелений', 'легкий'],
   EXPECTANT: ['expectant', 'black', 'чорний'],
+}
+
+export const EVACUATION_TYPES_UA = {
+  'автомобільна': 'automobile',
+  'швидка': 'rapid evacuation',
+  'гелікоптером': 'helicopter',
+  'пішки': 'on foot',
+  'санітарний транспорт': 'medical transport',
 }
 
 export const EVACUATION_PRIORITY_KEYWORDS = {

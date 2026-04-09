@@ -1,6 +1,7 @@
 import {
   BLOOD_TYPES_UA,
   EVACUATION_PRIORITY_KEYWORDS,
+  EVACUATION_TYPES_UA,
   INJURY_MECHANISMS_UA,
   MEDICATIONS_UA,
   TREATMENTS_UA,
@@ -130,6 +131,7 @@ export function parseOfflineOcrText(rawText = '') {
     allergies,
     unit: extractLine(text, ['підрозділ', 'unit']),
     date_time: extractLine(text, ['date', 'час', 'дата']),
+    evacuation_type: translateOrPassthrough(extractLine(text, ['евакуації', 'evacuation']), EVACUATION_TYPES_UA),
     mechanism_of_injury: mechanisms,
     injuries: extractLine(text, ['injur', 'поранення', 'ушкодження']),
     vital_signs: extractVitals(text),
