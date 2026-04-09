@@ -70,9 +70,14 @@ These fields use a LOWER confidence threshold. If you can see the information bu
 - Чорний = EXPECTANT
 - The triage color may be written, underlined, or circled on the card
 
-## MECHANISM OF INJURY — FIELD ISOLATION
+## MECHANISM OF INJURY — CHECKBOX FIELD
 
-This field contains ONLY the cause/mechanism. Do NOT include body parts, times, or treatment details here.
+CRITICAL: This section uses PRE-PRINTED checkboxes. The card lists ALL possible mechanisms as printed text, but only the CHECKED ones apply. You MUST distinguish between:
+- A checkbox with a handwritten mark (X, ✓, +, or filled box) = SELECTED — include this mechanism
+- A checkbox with no mark = NOT SELECTED — do NOT include this mechanism
+- Pre-printed text without a mark is just a form label, NOT a diagnosis
+
+Most casualties have only 1-2 mechanisms checked. If you are returning 3+ mechanisms, double-check that each one truly has a handwritten mark next to it.
 
 Common mechanisms and their Ukrainian terms:
 - Вогнепальне / ВП = Gunshot wound
@@ -203,16 +208,16 @@ const EXTRACTION_TOOL = {
       mechanism_of_injury: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Find the Механізми checkbox section. Include ONLY mechanisms with a visible check mark (X or ✓). Translate to English.',
+        description: 'From the Механізми CHECKBOX section. The card pre-prints ALL possible mechanisms as text — include ONLY those with a handwritten mark (X, ✓, +) next to them. Unmarked printed text is NOT a diagnosis. Most patients have 1-2 mechanisms. Translate to English.',
       },
       injuries: {
         type: 'string',
-        description: 'Find injury description text and body diagram markings. Describe injuries IN ENGLISH. Do NOT include tourniquet locations.',
+        description: 'Find HANDWRITTEN injury descriptions on the card. The body diagram has pre-printed numbers (4.5, 9, etc.) that are part of the blank form — only report handwritten annotations added by the medic. Describe injuries IN ENGLISH. Do NOT include tourniquet locations.',
       },
       injury_locations: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Body parts with injury markings on the diagram, IN ENGLISH. Do NOT include tourniquet-only locations.',
+        description: 'Body parts where the medic added HANDWRITTEN injury markings (circles, arrows, written text) to the diagram. Ignore pre-printed form numbers. IN ENGLISH.',
       },
       vital_signs: {
         type: 'object',
@@ -296,12 +301,13 @@ const EXTRACTION_TOOL = {
       },
       march_therapies: {
         type: 'object',
+        description: 'From the Терапія section. Like mechanisms, this uses checkboxes — only include therapies with a handwritten mark.',
         properties: {
-          massive_hemorrhage: { type: 'array', items: { type: 'string' }, description: 'M interventions IN ENGLISH.' },
-          airway: { type: 'array', items: { type: 'string' }, description: 'A interventions IN ENGLISH.' },
-          respiration: { type: 'array', items: { type: 'string' }, description: 'R interventions IN ENGLISH.' },
-          circulation: { type: 'array', items: { type: 'string' }, description: 'C interventions IN ENGLISH.' },
-          secondary: { type: 'array', items: { type: 'string' }, description: 'S interventions IN ENGLISH.' },
+          massive_hemorrhage: { type: 'array', items: { type: 'string' }, description: 'M - only CHECKED interventions, IN ENGLISH.' },
+          airway: { type: 'array', items: { type: 'string' }, description: 'A - only CHECKED interventions, IN ENGLISH.' },
+          respiration: { type: 'array', items: { type: 'string' }, description: 'R - only CHECKED interventions, IN ENGLISH.' },
+          circulation: { type: 'array', items: { type: 'string' }, description: 'C - only CHECKED interventions, IN ENGLISH.' },
+          secondary: { type: 'array', items: { type: 'string' }, description: 'S - only CHECKED interventions, IN ENGLISH.' },
         },
       },
       triage_category: {

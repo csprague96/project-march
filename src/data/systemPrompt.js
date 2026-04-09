@@ -68,9 +68,14 @@ These fields use a LOWER confidence threshold. If you can see the information bu
 - Чорний = EXPECTANT
 - The triage color may be written, underlined, or circled on the card
 
-## MECHANISM OF INJURY — FIELD ISOLATION
+## MECHANISM OF INJURY — CHECKBOX FIELD
 
-This field contains ONLY the cause/mechanism. Do NOT include body parts, times, or treatment details here.
+CRITICAL: This section uses PRE-PRINTED checkboxes. The card lists ALL possible mechanisms as printed text, but only the CHECKED ones apply. You MUST distinguish between:
+- A checkbox with a handwritten mark (X, ✓, +, or filled box) = SELECTED — include this mechanism
+- A checkbox with no mark = NOT SELECTED — do NOT include this mechanism
+- Pre-printed text without a mark is just a form label, NOT a diagnosis
+
+Most casualties have only 1-2 mechanisms checked. If you are returning 3+ mechanisms, double-check that each one truly has a handwritten mark next to it.
 
 Common mechanisms and their Ukrainian terms:
 - Вогнепальне / ВП = Gunshot wound
