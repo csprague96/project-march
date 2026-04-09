@@ -24,7 +24,7 @@ function ResultScreen({ backLabel, isSaving, onBack, onSave, record }) {
             type="button"
             onClick={onSave}
             disabled={hasBeenSaved || isSaving}
-            className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[var(--triage-immediate)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+            className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[var(--btn-primary)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
           >
             <Save className="h-4 w-4" />
             {hasBeenSaved ? t('saved') : isSaving ? t('saving') : t('save')}

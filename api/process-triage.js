@@ -29,6 +29,9 @@ These fields use a LOWER confidence threshold. If you can see the information bu
 - Cyrillic blood type notation: І(O), ІІ(A), ІІІ(B), ІV(AB)
 - Include Rh factor if written (+ or -)
 
+### NAMES
+- Transliterate all names (patient, first responder) from Cyrillic to Latin script (e.g. "ЛЕМЕХА ПЕТРО" → "LEMEKHA PETRO", "ОКРОШКО ГАЛИНА" → "OKROSHKO HALYNA"). Use standard Ukrainian transliteration.
+
 ### ALLERGIES  
 - "Немає" or "нема" = no known allergies → return []
 - If allergies are listed, return each as a separate string in the array

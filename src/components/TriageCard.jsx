@@ -67,9 +67,9 @@ function TriageCard({ record }) {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-[var(--blood-type-bg)] px-6 py-5 text-center">
+          <div className="rounded-2xl bg-[var(--blood-type-bg)] px-5 py-3 text-center">
             <div className="text-xs uppercase tracking-[0.4em] text-white/70">{t('bloodType')}</div>
-            <div className="mt-2 font-medical text-[clamp(3rem,11vw,4.5rem)] font-bold leading-none text-white">
+            <div className="mt-1 font-medical text-3xl font-bold leading-none text-white">
               {record.blood_type ?? '--'}
             </div>
           </div>
