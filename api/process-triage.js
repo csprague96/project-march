@@ -176,15 +176,15 @@ const EXTRACTION_TOOL = {
     properties: {
       patient_name: {
         type: 'string',
-        description: 'Patient full name transliterated from Cyrillic to Latin script. Null if unreadable.',
+        description: 'From ПРІЗВИЩЕ ТА ІМЯ row on LEFT HALF. Patient full name transliterated from Cyrillic to Latin. NOT the first responder name from the bottom.',
       },
       military_id: {
         type: 'string',
-        description: 'Military ID from ВІЙСЬКОВИЙ № field.',
+        description: 'From ВІЙСЬКОВИЙ № at TOP LEFT of card, near evacuation type.',
       },
       individual_number: {
         type: 'string',
-        description: 'Individual number from ІНД.№ field.',
+        description: 'From ІНД.№ field on LEFT HALF, same row as patient name.',
       },
       blood_type: {
         type: 'string',
@@ -194,15 +194,15 @@ const EXTRACTION_TOOL = {
       allergies: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Allergies in English. Empty array if "немає"/"нема" (none). Null if field not present.',
+        description: 'From АЛЕРГІЇ field on LEFT HALF. If "немає"/"нема"/"НЕМА" is written, return empty array []. Do NOT return "NONE" as an allergy string.',
       },
       unit: {
         type: 'string',
-        description: 'Military unit from ПІДРОЗДІЛ field, in English.',
+        description: 'From ПІДРОЗДІЛ row on LEFT HALF, below ДАТА/ЧАС. Military unit designation in English (e.g., "101st Brigade", "25th Mechanized"). This is NOT the allergies field.',
       },
       date_time: {
         type: 'string',
-        description: 'Date and time from ДАТА and ЧАС fields. Preserve exact digits written.',
+        description: 'From ДАТА-М/РІ and ЧАС fields on LEFT HALF, below patient name. Read the complete date digits carefully (e.g., "15-3-2026 18:10").',
       },
       evacuation_type: {
         type: 'string',
@@ -211,31 +211,32 @@ const EXTRACTION_TOOL = {
       mechanism_of_injury: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Injury mechanisms IN ENGLISH. Translate: Вогнепальне=Gunshot wound, Артилерія=Artillery, Міна=Mine, etc.',
+        description: 'From Механізми checkbox section on LEFT HALF. Include ONLY mechanisms with a check mark (X or ✓). Translate to English.',
       },
       injuries: {
         type: 'string',
-        description: 'Injury description IN ENGLISH. Translate all Ukrainian text.',
+        description: 'From Інформація про травми section and body diagram markings. Describe injuries IN ENGLISH. Do NOT include tourniquet locations here.',
       },
       injury_locations: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Body parts affected IN ENGLISH (e.g., "right arm", "left leg", "head").',
+        description: 'Body parts with injury markings on the diagram, IN ENGLISH. Do NOT include tourniquet-only locations.',
       },
       vital_signs: {
         type: 'object',
+        description: 'All values from the VITAL SIGNS TABLE at BOTTOM LEFT of card. Each row has a label and a handwritten value.',
         properties: {
-          time: { type: 'string', description: 'Time vitals were recorded.' },
-          pulse: { type: 'string', description: 'Heart rate in bpm.' },
-          blood_pressure: { type: 'string', description: 'Systolic/diastolic (e.g., "120/80"). Read carefully from Кров\'яний тиск row.' },
-          respiratory_rate: { type: 'string', description: 'Breaths per minute.' },
-          spo2: { type: 'string', description: 'Oxygen saturation percentage. Read from SpO2/Пульс ОкС row.' },
+          time: { type: 'string', description: 'From Час row (first row of vitals table).' },
+          pulse: { type: 'string', description: 'From Пульс (частота) row. Numeric bpm value.' },
+          blood_pressure: { type: 'string', description: 'From Кров\'яний тиск row. Format: systolic/diastolic (e.g., "140/90"). Read each digit carefully.' },
+          respiratory_rate: { type: 'string', description: 'From Частота дихання row. Numeric breaths/min.' },
+          spo2: { type: 'string', description: 'From Пульс ОкС/О2 насич. row. Percentage value.' },
           avpu: {
             type: 'string',
             enum: ['A', 'V', 'P', 'U'],
-            description: 'Consciousness level. Exactly ONE of: A=Alert, V=Voice, P=Pain, U=Unresponsive.',
+            description: 'From Притомність (AVPU) row. Exactly ONE letter.',
           },
-          pain_scale: { type: 'string', description: 'Pain score from Шкала болю row (0-10).' },
+          pain_scale: { type: 'string', description: 'From Шкала болю (0-10) row. The LAST row in the vitals table.' },
         },
       },
       treatments: {
@@ -323,14 +324,14 @@ const EXTRACTION_TOOL = {
       first_responder: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'ПЕРШИЙ РЯТІВНИК name transliterated to Latin. This is NOT the patient — read from the bottom of the card.' },
-          id: { type: 'string', description: 'First responder individual number.' },
+          name: { type: 'string', description: 'From ПРІЗВИЩЕ ІМ\'Я line at VERY BOTTOM RIGHT of card, after ПЕРШИЙ РЯТІВНИК label. Transliterate to Latin. This is the MEDIC, not the patient.' },
+          id: { type: 'string', description: 'From ІНД.№ at VERY BOTTOM RIGHT, same line as first responder name. This number MUST be different from the patient individual_number.' },
         },
-        description: 'First responder from ПЕРШИЙ РЯТІВНИК section at BOTTOM of card. MUST be different from patient.',
+        description: 'From ПЕРШИЙ РЯТІВНИК section at VERY BOTTOM of RIGHT HALF. The name and ID here belong to the medic who filled out the card. They MUST differ from patient_name and individual_number.',
       },
       notes: {
         type: 'string',
-        description: 'ONLY text from the НОТАТКИ section, translated to English. Do NOT generate or infer content. Null if empty/illegible.',
+        description: 'From НОТАТКИ box on RIGHT HALF of card, above ПЕРШИЙ РЯТІВНИК. Transcribe ONLY the handwritten text in that box, then translate to English. Do NOT summarize, paraphrase, or generate clinical observations. If the box is empty or fully illegible, return null.',
       },
       confidence: {
         type: 'number',
