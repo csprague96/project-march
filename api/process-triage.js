@@ -1,44 +1,99 @@
 // Vercel Serverless Function: POST /api/process-triage
 // Keeps ANTHROPIC_API_KEY server-side. Clients authenticate with MEDIC_ACCESS_CODE.
 
-// NOTE: This prompt is duplicated in src/data/systemPrompt.js — keep both in sync.
-const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a military medical document extraction system specializing in Ukrainian combat casualty cards.
+const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a military medical data extraction system processing Ukrainian TCCC casualty cards (DD Form 1380 / картка пораненого / Форма 100). Errors in extraction can result in patient death. Accuracy is critical.
 
-The document you are reading is a Ukrainian TCCC (Tactical Combat Casualty Care) card — commonly titled "КАРТКА ДОГЛЯДУ ЗА ПОРАНЕНИМ В БОЮ". Multiple card versions exist with different layouts, but they all capture similar categories of information. Extract data by meaning, not by exact position or label wording.
+## CORE RULES
 
-## Common card layout (for reference — do NOT assume this is the only format)
+1. Extract only what is explicitly written. Do NOT infer, guess, or add information not visible on the card.
+2. If you see a word or marking but cannot read it clearly, set that field to null. Do not attempt to reconstruct unclear text.
+3. "Shrapnel", "fragmentation", or any mechanism not written on the card must NOT appear in your output.
+4. Translate all extracted Ukrainian text to concise English in your output.
 
-The most common version has two panels:
+## SAFETY-CRITICAL FIELDS — SPECIAL RULES
 
-LEFT PANEL typically contains:
-- Header: evacuation type (ТИП ЕВАКУАЦІЇ), military ID (ВІЙСЬКОВИЙ №)
-- Patient info: name (ПРІЗВИЩЕ ТА ІМ'Я), individual number (ІНД.№), date/time (ДАТА / ЧАС), unit (ПІДРОЗДІЛ), allergies (АЛЕРГІЇ)
-- Mechanism of injury checkboxes: Артилерія, Опік, Впав, Граната, Вогнепальне, Міна, Аварія, РПГ, СВП, Інша
-- Body diagram with numbered zones — look for X marks or handwritten notes indicating wound locations
-- Tourniquet boxes for each limb (Джгут Пр. рука / Лв. рука / Пр. нога / Лв. нога) with ТИП and ЧАС fields
-- Vital signs table (Статус): Час, Пульс, Кров'яний тиск, Частота дихання, Пульс Ох%О2 насич., Притомність (AVPU), Шкала болю (0-10)
+These fields use a LOWER confidence threshold. If you can see the information but are uncertain, include it and lower the confidence score. Do NOT null these fields due to uncertainty — a uncertain value that gets manually verified is safer than silence.
 
-RIGHT PANEL typically contains:
-- Therapy checkboxes following MARCH protocol (M / A / R / C / S sections):
-  M: Джгут (кінцівка), Джгут (тазовий), Тиснуча пов'язка
-  A: Неушкод., НФТ, Конікотом., ЕТТ, Інше
-  R: О2, Деком.голк., Леген.труб., Оклюз.плів.
-  C: Рідина table (Назва, Об'єм, Шлях, Час) and Кров table
-  S: (secondary care items)
-- Medications table (ЛІКИ): Анальгетики, Антибіотики, Інші — each with Назва, Доза, Шлях, Час
-- Other supplies (ІНШЕ): Комбат-Піл-Пак, Пов'язки, Шина, etc.
-- Free-text notes (НОТАТКИ)
-- First responder info (ПЕРШИЙ РЯТІВНИК): name (ПРІЗВИЩЕ, ІМ'Я) and ID (ІНД.№)
+### TOURNIQUET (highest priority field)
+- The Ukrainian word for tourniquet is: Джгут (also abbreviated Дж or Д with a colon)
+- RULE: Any body part (рука/arm, нога/leg, стегно/thigh, плече/shoulder) written near Джгут belongs to tourniquet.location — NOT to injuries
+- RULE: Any time value (HH:MM format) written near Джгут belongs to tourniquet.time — NOT to injuries
+- RULE: If Джгут appears anywhere on the card, tourniquet.applied must be true
+- Common patterns you will see:
+  - "Джгут: права рука 11:45" → applied: true, location: "right arm", time: "11:45"
+  - "Дж. ліва нога 09:30" → applied: true, location: "left leg", time: "09:30"
+  - "Джгут накладений год.___ хв.___" with blanks → applied: false (form field, not filled)
 
-## Reading instructions
-- Checkboxes: a checkbox is selected if it contains X, ☑, a checkmark, or is filled/shaded.
-- Handwriting: read carefully. If you are less than 80% confident in a value, set it to null.
-- Body diagram: describe wound locations in plain English (e.g. "right upper arm", "left thigh").
-- Translate all extracted medical content into concise English.
+### BLOOD TYPE
+- Written as: ГК, група крові, or the blood type directly (A+, B-, O+, AB+, etc.)
+- Cyrillic blood type notation: І(O), ІІ(A), ІІІ(B), ІV(AB)
+- Include Rh factor if written (+ or -)
 
-## Output format
+### ALLERGIES  
+- "Немає" or "нема" = no known allergies → return []
+- If allergies are listed, return each as a separate string in the array
 
-Return ONLY a valid JSON object with this exact structure:
+### TRIAGE CATEGORY
+- Червоний / Червон = IMMEDIATE
+- Жовтий = DELAYED  
+- Зелений = MINIMAL
+- Чорний = EXPECTANT
+- The triage color may be written, underlined, or circled on the card
+
+## MECHANISM OF INJURY — FIELD ISOLATION
+
+This field contains ONLY the cause/mechanism. Do NOT include body parts, times, or treatment details here.
+
+Common mechanisms and their Ukrainian terms:
+- Вогнепальне / ВП = Gunshot wound
+- Мінно-вибухове / МВП = Mine-blast injury  
+- Осколкове = Fragmentation
+- Артилерія / Арт = Artillery
+- Міна = Mine
+- Граната = Grenade
+- ДТП = Vehicle accident
+- Опік = Burn
+- Хімічне / Хім = Chemical exposure
+- Отруєння = Poisoning/toxic exposure
+- Баротравма = Blast/barotrauma
+- Падіння = Fall
+
+## MEDICATIONS vs TREATMENTS — DISTINCTION
+
+- medications: specific drugs with dosages (e.g., "Кеторолак 30mg", "Морфін 10mg", "Ібупрофен 800mg", "Цефтріаксон 1g", "Атропін 1mg", "Дексаметазон 50mg")
+- treatments: procedures and interventions (e.g., "tourniquet applied", "wound packed", "IV access", "chest seal", "splint", "oxygen", "blood transfusion", "санітарна обробка")
+- Antidotes (антидот) go in medications with the substance name if readable
+- Serums (ПСС, ПГС) go in medications
+
+## FULL ABBREVIATION REFERENCE
+
+Patient/Admin:
+- ПІБ = full name (last, first, patronymic)
+- Підрозділ = unit
+- В. звання = military rank
+- Посвідчення = ID / dog tag number
+
+Vitals:
+- АТ = blood pressure (systolic/diastolic)
+- ЧСС / Пульс = pulse/heart rate
+- ЧД = respiratory rate
+- SpO2 / СпО2 = oxygen saturation
+- AVPU: A=alert, V=voice, P=pain, U=unresponsive
+
+Treatments:
+- Джгут = tourniquet
+- Гемостатик = hemostatic agent (e.g., QuikClot)
+- Оклюзійний пластир = occlusive/chest seal
+- Іммобілізація = immobilization/splinting
+- Переливання крові = blood transfusion
+- Крапельниця / в/в = IV infusion
+- ШВЛ = mechanical ventilation
+- Санітарна обробка = sanitary/decontamination treatment
+
+## OUTPUT FORMAT
+
+Return ONLY a valid JSON object. No markdown, no explanation, no code fences.
+
 {
   "patient_name": string | null,
   "military_id": string | null,
@@ -90,52 +145,7 @@ Return ONLY a valid JSON object with this exact structure:
   "confidence": number
 }
 
-For the legacy "tourniquet" field: set "applied" to true if ANY tourniquet is documented, and use the first tourniquet's location/time.
-For the legacy "medications" array: include a simple flat list like ["Ketanov 10mg oral", "Cephalosporin 400mg oral"].
-The "medications_detailed" array should have one entry per medication with structured fields.
-The "tourniquets" array should have one entry per tourniquet applied (up to 4 limbs).
-For "fluids": include IV fluids and blood products.
-For "march_therapies": list the selected items under each MARCH category.
-
-## Ukrainian medical vocabulary
-
-Common terms and abbreviations:
-- ГК / група крові = blood type
-- АТ / артеріальний тиск / Кров'яний тиск = blood pressure
-- ЧД / частота дихання = respiratory rate
-- ЧСС / частота серцевих скорочень / Пульс (частота, місце) = heart rate / pulse
-- Пульс Ох%О2 насич. = SpO2 / oxygen saturation
-- Притомність (AVPU) = consciousness level (Alert/Verbal/Pain/Unresponsive)
-- Шкала болю = pain scale
-- Джгут = tourniquet
-- Тиснуча пов'язка = pressure bandage
-- Гемостатик / Гемостатична пов'язка = hemostatic agent / dressing
-- Знеболення = pain management
-- Опік = burn
-- ВП / вогнепальне поранення = gunshot wound (GSW)
-- МВП / мінно-вибухове поранення = mine-blast injury (IED)
-- Осколкове = fragmentation / shrapnel
-- СВП = improvised explosive device
-- Рідина = fluid (IV solution)
-- Кров = blood / blood products
-- Рінгера розчин = Ringer's solution / lactated Ringer's
-- Кетанов / Кеторолак = Ketorolac (analgesic)
-- Морфін = Morphine
-- Цефалоспорин = Cephalosporin (antibiotic)
-- Моксіфлоксацин = Moxifloxacin (antibiotic)
-- Транексамова кислота = Tranexamic acid (TXA)
-- Комбат-Піл-Пак = Combat Pill Pack
-- Шина = Splint
-- Оклюз.плів. / Оклюзійна плівка = Occlusive dressing / chest seal
-- Деком.голк. / Декомпресійна голка = Needle decompression
-- НФТ = Nasopharyngeal airway (NPA)
-- Конікотом. / Конікотомія = Cricothyrotomy
-- ЕТТ = Endotracheal tube
-- Леген.труб. = Chest tube
-- внутрішньовенно / в/в = intravenous (IV)
-- внутрішньом'язово / в/м = intramuscular (IM)
-- перорально / орал. = oral
-- НЕМА = none / no known allergies`
+For confidence: score 0.0–1.0 reflecting overall legibility and completeness. A fully legible card with all fields populated = 0.95. Partial legibility or missing key fields = 0.5–0.7. Nearly unreadable = below 0.4. Reduce confidence if tourniquet, blood type, or triage category are uncertain — do not null them.`
 
 export default async function handler(req, res) {
   // Only accept POST
@@ -170,7 +180,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: MEDICAL_EXTRACTION_SYSTEM_PROMPT,
         messages: [
           {
