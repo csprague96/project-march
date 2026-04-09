@@ -68,13 +68,21 @@ function stripJsonCodeFence(value) {
 
 function extractJsonFromClaudeResponse(payload) {
   const contentBlocks = Array.isArray(payload?.content) ? payload.content : []
+
+  // Tool Use response: structured data in tool_use block
+  const toolUseBlock = contentBlocks.find((block) => block.type === 'tool_use')
+  if (toolUseBlock?.input) {
+    return toolUseBlock.input
+  }
+
+  // Fallback: legacy text-based JSON response
   const responseText = contentBlocks
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('\n')
 
   if (!responseText.trim()) {
-    throw new Error('Claude did not return OCR text.')
+    throw new Error('Claude did not return extraction data.')
   }
 
   try {
@@ -86,6 +94,17 @@ function extractJsonFromClaudeResponse(payload) {
 
 function normalizeString(value) {
   return value?.toString().trim() || null
+}
+
+const VALID_AVPU = ['A', 'V', 'P', 'U']
+
+function normalizeAvpu(value) {
+  if (!value) return null
+  const cleaned = value.toString().trim().toUpperCase()
+  if (VALID_AVPU.includes(cleaned)) return cleaned
+  const parts = cleaned.split(/[/,\s]+/)
+  const firstValid = parts.find((p) => VALID_AVPU.includes(p))
+  return firstValid ?? null
 }
 
 function normalizeMedicationsDetailed(value) {
@@ -158,7 +177,7 @@ export function normalizeTriageResult(payload = {}, overrides = {}) {
       blood_pressure: normalizeString(payload.vital_signs?.blood_pressure),
       respiratory_rate: normalizeString(payload.vital_signs?.respiratory_rate),
       spo2: normalizeString(payload.vital_signs?.spo2),
-      avpu: normalizeString(payload.vital_signs?.avpu),
+      avpu: normalizeAvpu(payload.vital_signs?.avpu),
       pain_scale: normalizeString(payload.vital_signs?.pain_scale),
     },
     treatments: toArray(payload.treatments),
