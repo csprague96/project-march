@@ -20,7 +20,7 @@ export async function processOfflineQueue({ accessCode, onRecordUpdated, onError
       const processedImage = await preprocessImage(imageBlob)
       const upgradedResult = await extractWithClaude({
         accessCode,
-        base64ImageData: processedImage.base64,
+        base64ImageData: processedImage.original.base64,
       })
 
       await updateTriageRecord(queuedCapture.recordId, {

@@ -93,28 +93,51 @@ Return ONLY a valid JSON object. No markdown, no explanation, no code fences.
 
 {
   "patient_name": string | null,
+  "military_id": string | null,
+  "individual_number": string | null,
   "blood_type": string | null,
   "allergies": string[] | null,
   "unit": string | null,
   "date_time": string | null,
+  "evacuation_type": string | null,
   "mechanism_of_injury": string[],
   "injuries": string | null,
+  "injury_locations": string[] | null,
   "vital_signs": {
+    "time": string | null,
     "pulse": string | null,
     "blood_pressure": string | null,
     "respiratory_rate": string | null,
     "spo2": string | null,
-    "avpu": string | null
+    "avpu": string | null,
+    "pain_scale": string | null
   },
   "treatments": string[],
   "medications": string[],
+  "medications_detailed": [
+    { "category": string | null, "name": string, "dose": string | null, "route": string | null, "time": string | null }
+  ],
+  "fluids": [
+    { "type": "fluid" | "blood", "name": string, "volume": string | null, "route": string | null, "time": string | null }
+  ],
   "tourniquet": {
     "applied": boolean,
     "location": string | null,
     "time": string | null
   },
+  "tourniquets": [
+    { "location": string, "type": string | null, "time": string | null }
+  ],
+  "march_therapies": {
+    "massive_hemorrhage": string[],
+    "airway": string[],
+    "respiration": string[],
+    "circulation": string[],
+    "secondary": string[]
+  },
   "triage_category": string | null,
   "evacuation_priority": string | null,
+  "first_responder": { "name": string | null, "id": string | null } | null,
   "notes": string | null,
   "confidence": number
 }

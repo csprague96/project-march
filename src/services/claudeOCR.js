@@ -84,32 +84,102 @@ function extractJsonFromClaudeResponse(payload) {
   }
 }
 
+function normalizeString(value) {
+  return value?.toString().trim() || null
+}
+
+function normalizeMedicationsDetailed(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item) => item && item.name)
+    .map((item) => ({
+      category: normalizeString(item.category),
+      name: normalizeString(item.name) ?? '',
+      dose: normalizeString(item.dose),
+      route: normalizeString(item.route),
+      time: normalizeString(item.time),
+    }))
+}
+
+function normalizeFluids(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item) => item && item.name)
+    .map((item) => ({
+      type: item.type === 'blood' ? 'blood' : 'fluid',
+      name: normalizeString(item.name) ?? '',
+      volume: normalizeString(item.volume),
+      route: normalizeString(item.route),
+      time: normalizeString(item.time),
+    }))
+}
+
+function normalizeTourniquets(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item) => item && item.location)
+    .map((item) => ({
+      location: normalizeString(item.location) ?? '',
+      type: normalizeString(item.type),
+      time: normalizeString(item.time),
+    }))
+}
+
+function normalizeMarchTherapies(value) {
+  if (!value || typeof value !== 'object') return null
+  return {
+    massive_hemorrhage: toArray(value.massive_hemorrhage),
+    airway: toArray(value.airway),
+    respiration: toArray(value.respiration),
+    circulation: toArray(value.circulation),
+    secondary: toArray(value.secondary),
+  }
+}
+
 export function normalizeTriageResult(payload = {}, overrides = {}) {
+  const tourniquets = normalizeTourniquets(payload.tourniquets)
+  const firstTourniquet = tourniquets[0] ?? null
+
   const normalized = {
-    patient_name: payload.patient_name?.toString().trim() || null,
+    patient_name: normalizeString(payload.patient_name),
+    military_id: normalizeString(payload.military_id),
+    individual_number: normalizeString(payload.individual_number),
     blood_type: normalizeBloodType(payload.blood_type),
     allergies: toArray(payload.allergies, true),
-    unit: payload.unit?.toString().trim() || null,
-    date_time: payload.date_time?.toString().trim() || null,
+    unit: normalizeString(payload.unit),
+    date_time: normalizeString(payload.date_time),
+    evacuation_type: normalizeString(payload.evacuation_type),
     mechanism_of_injury: toArray(payload.mechanism_of_injury),
-    injuries: payload.injuries?.toString().trim() || null,
+    injuries: normalizeString(payload.injuries),
+    injury_locations: toArray(payload.injury_locations, true),
     vital_signs: {
-      pulse: payload.vital_signs?.pulse?.toString().trim() || null,
-      blood_pressure: payload.vital_signs?.blood_pressure?.toString().trim() || null,
-      respiratory_rate: payload.vital_signs?.respiratory_rate?.toString().trim() || null,
-      spo2: payload.vital_signs?.spo2?.toString().trim() || null,
-      avpu: payload.vital_signs?.avpu?.toString().trim() || null,
+      time: normalizeString(payload.vital_signs?.time),
+      pulse: normalizeString(payload.vital_signs?.pulse),
+      blood_pressure: normalizeString(payload.vital_signs?.blood_pressure),
+      respiratory_rate: normalizeString(payload.vital_signs?.respiratory_rate),
+      spo2: normalizeString(payload.vital_signs?.spo2),
+      avpu: normalizeString(payload.vital_signs?.avpu),
+      pain_scale: normalizeString(payload.vital_signs?.pain_scale),
     },
     treatments: toArray(payload.treatments),
     medications: toArray(payload.medications),
+    medications_detailed: normalizeMedicationsDetailed(payload.medications_detailed),
+    fluids: normalizeFluids(payload.fluids),
+    // Legacy singular tourniquet — derived from the first entry in tourniquets,
+    // or from the legacy field if tourniquets array is empty (old records).
     tourniquet: {
-      applied: Boolean(payload.tourniquet?.applied),
-      location: payload.tourniquet?.location?.toString().trim() || null,
-      time: payload.tourniquet?.time?.toString().trim() || null,
+      applied: tourniquets.length > 0 ? true : Boolean(payload.tourniquet?.applied),
+      location: firstTourniquet?.location ?? normalizeString(payload.tourniquet?.location),
+      time: firstTourniquet?.time ?? normalizeString(payload.tourniquet?.time),
     },
+    tourniquets,
+    march_therapies: normalizeMarchTherapies(payload.march_therapies),
     triage_category: normalizeTriageCategory(payload.triage_category),
     evacuation_priority: normalizeEvacuationPriority(payload.evacuation_priority),
-    notes: payload.notes?.toString().trim() || null,
+    first_responder: payload.first_responder
+      ? { name: normalizeString(payload.first_responder.name), id: normalizeString(payload.first_responder.id) }
+      : null,
+    notes: normalizeString(payload.notes),
     confidence: Number.isFinite(payload.confidence)
       ? Math.max(0, Math.min(1, Number(payload.confidence)))
       : 0,
