@@ -166,7 +166,7 @@ function CameraScreen({
                     <button
                       type="button"
                       onClick={() => onSaveAccessCode(accessCodeDraft)}
-                      className="min-h-12 rounded-2xl bg-[var(--triage-immediate)] px-5 text-sm font-semibold text-white"
+                      className="min-h-12 rounded-2xl bg-[var(--btn-primary)] px-5 text-sm font-semibold text-white"
                     >
                       {t('saveCode')}
                     </button>
@@ -238,7 +238,7 @@ function CameraScreen({
             >
               <Inbox className="h-5 w-5" />
               {pendingCount > 0 ? (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--triage-immediate)] px-1 text-[10px] font-bold text-white">
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--btn-primary)] px-1 text-[10px] font-bold text-white">
                   {pendingCount > 9 ? '9+' : pendingCount}
                 </span>
               ) : null}
