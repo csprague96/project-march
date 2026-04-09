@@ -3,7 +3,7 @@
 // from being served after a Vercel build (the root cause of white-screen issues).
 const CACHE_VERSION = typeof __SW_CACHE_VERSION__ !== 'undefined'
   ? __SW_CACHE_VERSION__
-  : 'triage-shell-dev'
+  : 'triage-shell-dev-2'
 
 const APP_SHELL = [
   '/',
