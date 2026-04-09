@@ -26,6 +26,10 @@ const translations = {
     cameraInstructions:
       'Point the camera at the casualty card and capture once. The app preprocesses every image before OCR to improve low-light readability.',
 
+    // Photo preview
+    retake: 'Retake',
+    usePhoto: 'Use Photo',
+
     // Save actions
     save: 'Save',
     saving: 'Saving...',
@@ -174,6 +178,10 @@ const translations = {
     // Camera instructions
     cameraInstructions:
       'Наведіть камеру на картку пораненого та зробіть знімок. Програма попередньо обробляє кожне зображення перед розпізнаванням для кращої читабельності при слабкому освітленні.',
+
+    // Photo preview
+    retake: 'Перезняти',
+    usePhoto: 'Використати фото',
 
     // Save actions
     save: 'Зберегти',

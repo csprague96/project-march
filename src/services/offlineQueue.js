@@ -34,6 +34,13 @@ export async function processOfflineQueue({ accessCode, onRecordUpdated, onError
       await removeQueuedCapture(queuedCapture.id)
       onRecordUpdated?.(queuedCapture.recordId)
     } catch (error) {
+      // Remove the queued item on non-network errors (bad data, API rejection)
+      // to prevent infinite retry loops. Network errors are transient — the
+      // item stays in the queue and retries on the next connectivity event.
+      const isNetworkError = !navigator.onLine || error.message?.includes('Failed to fetch')
+      if (!isNetworkError) {
+        await removeQueuedCapture(queuedCapture.id)
+      }
       onError?.(error, queuedCapture)
     }
   }

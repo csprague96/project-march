@@ -1,4 +1,4 @@
-import { Flashlight, Globe, History, Inbox, KeyRound, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-react'
+import { Check, Flashlight, Globe, History, Inbox, KeyRound, RefreshCw, TriangleAlert, Wifi, WifiOff, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import CaptureButton from '../components/CaptureButton'
@@ -22,7 +22,7 @@ function CameraScreen({
   const [torchEnabled, setTorchEnabled] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [captureFlash, setCaptureFlash] = useState(false)
-  const [frozenFrame, setFrozenFrame] = useState(null)
+  const [previewFrame, setPreviewFrame] = useState(null)
 
   const connectCamera = useCallback(async () => {
     setCameraError(null)
@@ -53,20 +53,22 @@ function CameraScreen({
   const handleCapture = async () => {
     try {
       const frame = await captureFrame(videoRef.current)
-      // Freeze the feed for 0.5 s so the medic can see the captured frame,
-      // then resume the live view. Flash and freeze share the same timer.
       setCaptureFlash(true)
-      setFrozenFrame(frame.dataUrl)
-      setTimeout(() => {
-        setCaptureFlash(false)
-        setFrozenFrame(null)
-      }, 500)
-      // Fire-and-forget — OCR runs in the background worker.
-      // The camera stays live and the user can capture again immediately.
-      onCapture(frame)
+      setTimeout(() => setCaptureFlash(false), 300)
+      setPreviewFrame(frame)
     } catch (error) {
       setCameraError(error.message)
     }
+  }
+
+  const handleUsePhoto = () => {
+    if (!previewFrame) return
+    onCapture(previewFrame)
+    setPreviewFrame(null)
+  }
+
+  const handleRetake = () => {
+    setPreviewFrame(null)
   }
 
   const handleTorchToggle = async () => {
@@ -81,10 +83,8 @@ function CameraScreen({
   return (
     <section className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover opacity-70" autoPlay muted />
-      {/* Frozen frame: displayed for 0.5 s after capture to confirm the shot */}
-      {frozenFrame ? <img src={frozenFrame} className="absolute inset-0 h-full w-full object-cover opacity-70" aria-hidden="true" alt="" /> : null}
-      <div className="camera-vignette absolute inset-0" />
-      {/* Shutter flash: fires on capture to confirm the photo was taken */}
+      {previewFrame ? <img src={previewFrame.dataUrl} className="absolute inset-0 h-full w-full object-cover" alt="Captured card preview" /> : null}
+      {!previewFrame && <div className="camera-vignette absolute inset-0" />}
       {captureFlash ? <div className="animate-shutter-flash absolute inset-0 bg-white" /> : null}
 
       <div className="relative z-10 flex min-h-screen flex-col justify-between p-4 sm:p-6">
@@ -221,29 +221,51 @@ function CameraScreen({
         </div>
 
         <footer className="relative flex flex-col items-center gap-4 pb-4">
-          <div className="flex items-center gap-1.5" aria-hidden="true">
-            <span className="ukraine-flag ukraine-flag-sm" />
-            <span className="text-[11px] font-medium text-white/40">Слава Україні!</span>
-          </div>
+          {previewFrame ? (
+            <div className="flex w-full max-w-sm items-center justify-center gap-6">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-black/50 text-sm font-semibold text-white backdrop-blur"
+              >
+                <X className="h-5 w-5" />
+                {t('retake')}
+              </button>
+              <button
+                type="button"
+                onClick={handleUsePhoto}
+                className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--btn-primary)] text-sm font-semibold text-white"
+              >
+                <Check className="h-5 w-5" />
+                {t('usePhoto')}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5" aria-hidden="true">
+                <span className="ukraine-flag ukraine-flag-sm" />
+                <span className="text-[11px] font-medium text-white/40">Слава Україні!</span>
+              </div>
 
-          <CaptureButton onClick={handleCapture} />
+              <CaptureButton onClick={handleCapture} />
 
-          {/* Inbox button: bottom-right, shows count of captures awaiting review */}
-          <div className="absolute right-0 bottom-4">
-            <button
-              type="button"
-              onClick={onOpenInbox}
-              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
-              aria-label={t('inbox')}
-            >
-              <Inbox className="h-5 w-5" />
-              {pendingCount > 0 ? (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--btn-primary)] px-1 text-[10px] font-bold text-white">
-                  {pendingCount > 9 ? '9+' : pendingCount}
-                </span>
-              ) : null}
-            </button>
-          </div>
+              <div className="absolute right-0 bottom-4">
+                <button
+                  type="button"
+                  onClick={onOpenInbox}
+                  className="relative flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white backdrop-blur"
+                  aria-label={t('inbox')}
+                >
+                  <Inbox className="h-5 w-5" />
+                  {pendingCount > 0 ? (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--btn-primary)] px-1 text-[10px] font-bold text-white">
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+            </>
+          )}
         </footer>
       </div>
     </section>
