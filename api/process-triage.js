@@ -424,3 +424,4 @@ export default async function handler(req, res) {
   } catch (networkError) {
     return res.status(502).json({ error: 'Failed to reach Anthropic API.', detail: networkError.message })
   }
+}
