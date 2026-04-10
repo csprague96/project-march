@@ -225,7 +225,7 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Failed to reach Google Vision API.', detail: networkError.message })
   }
 
-  // --- PASS 2: CLAUDE LLM STRUCTURING ---
+// --- PASS 2: CLAUDE LLM STRUCTURING ---
   try {
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -244,7 +244,20 @@ export default async function handler(req, res) {
         messages: [
           {
             role: 'user',
-            content: `Here is the raw OCR text extracted from the Ukrainian TCCC card:\n\n<ocr_text>\n${rawOcrText}\n</ocr_text>\n\nMap this text into the structured JSON schema. Translate all clinical data to English. Follow the strict transcription rules for notes and injuries.`,
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/jpeg',
+                  data: base64ImageData,
+                },
+              },
+              {
+                type: 'text',
+                text: `Here is the raw OCR text extracted by Google Cloud Vision:\n\n<ocr_text>\n${rawOcrText}\n</ocr_text>\n\nCRITICAL INSTRUCTIONS:\n1. Use the <ocr_text> as your ground truth for spelling names, vitals, numbers, and transcribing notes. Do not hallucinate names that are not in the text.\n2. Look at the IMAGE to determine which checkboxes are actually marked with pen ink.\n3. DO NOT extract a mechanism, treatment, or therapy just because the pre-printed word exists in the text. You MUST verify with the image that the medic actually marked it.\n4. If the Notes section in the image is empty, return null, even if OCR text picked up random noise nearby.`,
+              },
+            ],
           },
         ],
       }),
@@ -260,4 +273,3 @@ export default async function handler(req, res) {
   } catch (networkError) {
     return res.status(502).json({ error: 'Failed to reach Anthropic API.', detail: networkError.message })
   }
-}
