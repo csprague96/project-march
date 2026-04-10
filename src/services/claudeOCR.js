@@ -198,7 +198,11 @@ export function normalizeTriageResult(payload = {}, overrides = {}) {
     first_responder: payload.first_responder
       ? { name: normalizeString(payload.first_responder.name), id: normalizeString(payload.first_responder.id) }
       : null,
-    notes: normalizeString(payload.notes),
+    notes: (() => {
+      const raw = normalizeString(payload.notes)
+      if (!raw) return null
+      return raw.length > 500 ? raw.slice(0, 500) : raw
+    })(),
     confidence: Number.isFinite(payload.confidence)
       ? Math.max(0, Math.min(1, Number(payload.confidence)))
       : 0,

@@ -82,6 +82,11 @@ function extractLine(text, labels) {
   return text.match(expression)?.[1]?.trim() ?? null
 }
 
+function extractNotesSection(text) {
+  const match = text.match(/(?:нотатки|notes|примітки)\s*[:\-]?\s*([\s\S]{1,500}?)(?=(?:перший рятівник|підпис|first responder|signature|$))/im)
+  return match?.[1]?.trim() || null
+}
+
 function extractTourniquet(text) {
   const applied = /джгут|tourniquet/i.test(text)
   if (!applied) {
@@ -140,7 +145,7 @@ export function parseOfflineOcrText(rawText = '') {
     tourniquet: extractTourniquet(text),
     triage_category: findKeywordGroup(text, TRIAGE_CATEGORY_KEYWORDS),
     evacuation_priority: findKeywordGroup(text, EVACUATION_PRIORITY_KEYWORDS),
-    notes: text.trim().slice(0, 700) || null,
+    notes: extractNotesSection(text),
     confidence: calculatedConfidence,
   })
 }
