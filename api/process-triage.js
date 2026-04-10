@@ -1,5 +1,7 @@
+export const maxDuration = 60; 
+
 // Vercel Serverless Function: POST /api/process-triage
-// Keeps API keys server-side. Clients authenticate with MEDIC_ACCESS_CODE.
+// Keeps API keys server-side.
 
 const MEDICAL_EXTRACTION_SYSTEM_PROMPT = `You are a strict deterministic data structuring assistant. You process raw, messy OCR text scraped by Google Cloud Vision from Ukrainian TCCC casualty cards (Forma 100, DD-1380, etc.).
 
